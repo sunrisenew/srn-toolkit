@@ -1,0 +1,3 @@
+provider: generic
+url: https://srn-toolkit.sunrisenew.cn/auto-updates
+updaterCacheDirName: srn-toolkit-updater

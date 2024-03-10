@@ -1,0 +1,19 @@
+{
+  "extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
+  "include": [
+    "docs/.vuepress/**/*",
+    "docs/.vuepress/**/*.vue",
+  ],
+  "compilerOptions": {
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@images/*": [
+        "docs/images/*"
+      ]
+    },
+    "types": [
+      "naive-ui/volar"
+    ]
+  }
+}
