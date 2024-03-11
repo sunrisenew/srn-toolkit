@@ -478,7 +478,7 @@ async function parseItemText(itemText: string, patchDirectory: string): Promise<
 
   const { filename: replacedSourceFilename } = replacedSourceFileInfo
 
-  parsedItem.action = action
+  parsedItem.action = action || '?'
   parsedItem.originPath = originPath
   parsedItem.moduleName = moduleName
   parsedItem.sourcePath = `${moduleRootDirectory}/${replacedSourceRelativeItemPath}`
