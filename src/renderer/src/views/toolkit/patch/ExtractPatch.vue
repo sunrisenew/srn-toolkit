@@ -227,7 +227,7 @@
         </template>
         <template #footer>
           <n-space justify="space-between" style="width: 100%;">
-            <n-button type="info" ghost @click="handleShowSettingInFolder()">定位文件</n-button>
+            <n-button type="info" ghost @click="handleShowSettingFileInFolder()">定位文件</n-button>
             <n-space>
               <n-button type="info" ghost @click="toggleShowSetting(false)">取消</n-button>
               <n-button type="primary" :loading="savingSetting" @click="handleSaveSetting()">保存</n-button>
@@ -754,9 +754,9 @@ async function loadSetting() {
 
 const savingSetting = ref(false)
 
-async function saveSetting() {
+function saveSetting() {
   savingSetting.value = true
-  await useSaveSetting(SETTING_NAME, settingModel.value).then(() => {
+  useSaveSetting(SETTING_NAME, settingModel.value).then(() => {
     window.$message?.success('保存成功')
     toggleShowSetting(false)
   }).catch(error => window.$message?.error(error.message))
@@ -767,7 +767,8 @@ function handleSaveSetting() {
   settingModelFormRef.value?.validate().then(() => saveSetting()).catch(errors => errors && window.$message?.error('必填参数不能为空'))
 }
 
-function handleShowSettingInFolder() {
+async function handleShowSettingFileInFolder() {
+  await useSaveSetting(SETTING_NAME, settingModel.value)
   useShowSettingInFolder(SETTING_NAME)
 }
 
