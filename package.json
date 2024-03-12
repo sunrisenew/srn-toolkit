@@ -1,6 +1,6 @@
 {
   "name": "srn-toolkit",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Toolkit for Development",
   "main": "./out/main/main.js",
   "author": "sunrisenew",
