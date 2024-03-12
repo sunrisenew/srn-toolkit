@@ -147,7 +147,7 @@
                 <n-button type="info" ghost @click="handleOpenFile(settingModel, 'customSevenZip')">选择</n-button>
               </n-input-group>
             </n-form-item>
-            <n-form-item class="temp-unzip-directory" label="临时解压目录" path="tempUnzipDirectory">
+            <n-form-item class="temp-unzip-directory" label="临时解压目录" path="tempUnzipDirectory" :rule="{ required: true, message: '临时解压目录不能为空' }">
               <n-input-group>
                 <n-input v-model:value="settingModel.tempUnzipDirectory" readonly></n-input>
                 <n-button type="info" ghost @click="handleOpenDirectory(settingModel, 'tempUnzipDirectory')">选择</n-button>
