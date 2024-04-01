@@ -44,12 +44,12 @@ export function registerCreateDocsBrowserWindowEvent() {
   })
 }
 
-export function registerIpcMainEvents(browserWindow: BrowserWindow) {
-  registerOpenFileEvent(browserWindow)
-  registerOpenFilesEvent(browserWindow)
-  registerOpenDirectoryEvent(browserWindow)
-  registerOpenDirectoriesEvent(browserWindow)
-  registerOpenFilesAndDirectoriesEvent(browserWindow)
+export function registerIpcMainEvents() {
+  registerOpenFileEvent()
+  registerOpenFilesEvent()
+  registerOpenDirectoryEvent()
+  registerOpenDirectoriesEvent()
+  registerOpenFilesAndDirectoriesEvent()
   registerLoadSetting()
   registerSaveSetting()
   registerShowSettingInFolder()
@@ -65,40 +65,45 @@ export function registerIpcMainEvents(browserWindow: BrowserWindow) {
   registerDeleteArchive()
 }
 
-function registerOpenFileEvent(browserWindow: BrowserWindow) {
+function registerOpenFileEvent() {
   ipcMain.handle('dialog:openFile', (event, options: OpenDialogOptions) => {
+    const browserWindow = BrowserWindow.fromWebContents(event.sender)!
     return dialog.showOpenDialog(browserWindow, Object.assign(options, {
       properties: ['openFile']
     }))
   })
 }
 
-function registerOpenFilesEvent(browserWindow: BrowserWindow) {
+function registerOpenFilesEvent() {
   ipcMain.handle('dialog:openFiles', (event, options: OpenDialogOptions) => {
+    const browserWindow = BrowserWindow.fromWebContents(event.sender)!
     return dialog.showOpenDialog(browserWindow, Object.assign(options, {
       properties: ['openFile', 'multiSelections']
     }))
   })
 }
 
-function registerOpenDirectoryEvent(browserWindow: BrowserWindow) {
+function registerOpenDirectoryEvent() {
   ipcMain.handle('dialog:openDirectory', (event, options: OpenDialogOptions) => {
+    const browserWindow = BrowserWindow.fromWebContents(event.sender)!
     return dialog.showOpenDialog(browserWindow, Object.assign(options, {
       properties: ['openDirectory']
     }))
   })
 }
 
-function registerOpenDirectoriesEvent(browserWindow: BrowserWindow) {
+function registerOpenDirectoriesEvent() {
   ipcMain.handle('dialog:openDirectories', (event, options: OpenDialogOptions) => {
+    const browserWindow = BrowserWindow.fromWebContents(event.sender)!
     return dialog.showOpenDialog(browserWindow, Object.assign(options, {
       properties: ['openDirectory', 'multiSelections']
     }))
   })
 }
 
-function registerOpenFilesAndDirectoriesEvent(browserWindow: BrowserWindow) {
+function registerOpenFilesAndDirectoriesEvent() {
   ipcMain.handle('dialog:openFilesAndDirectories', (event, options: OpenDialogOptions) => {
+    const browserWindow = BrowserWindow.fromWebContents(event.sender)!
     return dialog.showOpenDialog(browserWindow, Object.assign(options, {
       properties: ['openFile', 'openDirectory', 'multiSelections']
     }))
