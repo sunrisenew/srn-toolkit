@@ -1,6 +1,6 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { registerCreateDocsBrowserWindowEvent, registerIpcMainEvents } from '@main/events/ipc-main'
-import { BrowserWindow, app, shell } from 'electron'
+import { BrowserWindow, Menu, app, shell } from 'electron'
 import path from 'node:path'
 
 function createWindow() {
@@ -80,5 +80,8 @@ app.on('window-all-closed', () => {
 
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
+
+// Remove app menu.
+Menu.setApplicationMenu(null)
 
 registerCreateDocsBrowserWindowEvent()
