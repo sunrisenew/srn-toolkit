@@ -253,7 +253,7 @@ type ModuleSettingModel = SettingModel['modules'][0]
 </script>
 
 <script setup lang="ts">
-import { useAddArchive, useCopyFile, useDeleteArchive, useDeleteDirectory, useExtractFullArchive, useLoadSetting, useNodePath, useOpenDirectoryDialog, useOpenFileDialog, useReadJsonFile, useSaveSetting, useShowItemInFolder, useShowSettingFileInFolder, useTestArchive } from '@renderer/compositions/ipc-renderer'
+import { useAddArchive, useCopyFile, useDeleteArchive, useDeleteDirectory, useExtractFullArchive, useGetModuleTempPath, useLoadSetting, useNodePath, useOpenDirectoryDialog, useOpenFileDialog, useReadJsonFile, useSaveSetting, useShowItemInFolder, useShowSettingFileInFolder, useTestArchive } from '@renderer/compositions/ipc-renderer'
 import { parseFileInfo } from '@renderer/utils/path'
 import { driver } from 'driver.js'
 import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSpace, NSpin, NTag, NText, NThing } from 'naive-ui'
@@ -599,8 +599,11 @@ const loadingSetting = ref(false)
 
 async function loadSetting() {
   loadingSetting.value = true
-  await useLoadSetting(MODULE_NAME).then(setting => {
+  await useLoadSetting(MODULE_NAME).then(async setting => {
     settingModel.value = setting ?? settingModel.value
+    if (!settingModel.value.tempUnzipDirectory) {
+      settingModel.value.tempUnzipDirectory = await useGetModuleTempPath(MODULE_NAME)
+    }
   }).catch(error => window.$message?.error(error.message))
     .finally(() => loadingSetting.value = false)
 }

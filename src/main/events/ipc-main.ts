@@ -45,6 +45,7 @@ export function registerCreateDocsBrowserWindowEvent() {
 }
 
 export function registerIpcMainEvents() {
+  registerGetModuleTempPath()
   registerOpenFileEvent()
   registerOpenFilesEvent()
   registerOpenDirectoryEvent()
@@ -63,6 +64,17 @@ export function registerIpcMainEvents() {
   registerExtractFullArchive()
   registerAddArchive()
   registerDeleteArchive()
+}
+
+function registerGetModuleTempPath() {
+  ipcMain.handle('app:getModuleTempPath', async (event, moduleName: string) => {
+    const appTempPath = app.getPath('temp')
+    const moduleTempPath = path.resolve(appTempPath, moduleName)
+    await mkdir(moduleTempPath, {
+      recursive: true
+    })
+    return moduleTempPath
+  })
 }
 
 function registerOpenFileEvent() {
