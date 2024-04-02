@@ -39,8 +39,8 @@ export default createRouter({
         unroutable: true
       },
       children: [{
-        path: 'patch',
-        name: 'patch',
+        path: 'patches',
+        name: 'patches',
         component: RouteLayout,
         meta: {
           title: '增量包',
