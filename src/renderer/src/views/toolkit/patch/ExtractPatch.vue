@@ -17,7 +17,7 @@
         <n-h2 prefix="bar">基本信息</n-h2>
         <n-form-item class="patch-root-directory" label="增量包根目录" path="patchRootDirectory" :rule="{ required: true, message: '增量包根目录不能为空' }">
           <n-input-group>
-            <n-input v-model:value="model.patchRootDirectory" readonly></n-input>
+            <n-input v-model:value="model.patchRootDirectory" placeholder="请选择" readonly></n-input>
             <n-button type="info" ghost @click="handleOpenDirectory(model, 'patchRootDirectory')">选择</n-button>
           </n-input-group>
         </n-form-item>
@@ -168,7 +168,7 @@
             <n-h2 prefix="bar">基本配置</n-h2>
             <n-form-item class="default-patch-root-directory" label="默认增量包根目录" path="defaultPatchRootDirectory">
               <n-input-group>
-                <n-input v-model:value="settingModel.defaultPatchRootDirectory" readonly></n-input>
+                <n-input v-model:value="settingModel.defaultPatchRootDirectory" placeholder="请选择" readonly></n-input>
                 <n-button type="info" ghost @click="handleOpenDirectory(settingModel, 'defaultPatchRootDirectory')">选择</n-button>
               </n-input-group>
             </n-form-item>
@@ -189,7 +189,7 @@
                       </n-form-item>
                       <n-form-item label="根目录" :path="`modules[${moduleIndex}].setting.rootDirectory`" :rule="{ required: true, message: '根目录不能为空' }">
                         <n-input-group>
-                          <n-input v-model:value="module.setting.rootDirectory" readonly></n-input>
+                          <n-input v-model:value="module.setting.rootDirectory" placeholder="请选择" readonly></n-input>
                           <n-button type="info" ghost @click="handleOpenDirectory(module.setting, 'rootDirectory')">选择</n-button>
                         </n-input-group>
                       </n-form-item>
