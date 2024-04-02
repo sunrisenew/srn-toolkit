@@ -545,7 +545,7 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
     .finally(() => combinePatchInfo.value.processing = false)
 }
 
-const SETTING_NAME = 'combine-patch'
+const MODULE_NAME = 'combine-patch'
 const settingModel = ref<SettingModel>({
   customSevenZip: '',
   tempUnzipDirectory: '',
@@ -599,7 +599,7 @@ const loadingSetting = ref(false)
 
 async function loadSetting() {
   loadingSetting.value = true
-  await useLoadSetting(SETTING_NAME).then(setting => {
+  await useLoadSetting(MODULE_NAME).then(setting => {
     settingModel.value = setting ?? settingModel.value
   }).catch(error => window.$message?.error(error.message))
     .finally(() => loadingSetting.value = false)
@@ -609,7 +609,7 @@ const savingSetting = ref(false)
 
 function saveSetting() {
   savingSetting.value = true
-  useSaveSetting(SETTING_NAME, settingModel.value).then(() => {
+  useSaveSetting(MODULE_NAME, settingModel.value).then(() => {
     window.$message?.success('保存成功')
     toggleShowSetting(false)
   }).catch(error => window.$message?.error(error.message))
@@ -621,8 +621,8 @@ function handleSaveSetting() {
 }
 
 async function handleShowSettingFileInFolder() {
-  await useSaveSetting(SETTING_NAME, settingModel.value)
-  useShowSettingFileInFolder(SETTING_NAME)
+  await useSaveSetting(MODULE_NAME, settingModel.value)
+  useShowSettingFileInFolder(MODULE_NAME)
 }
 
 function handleGuide() {

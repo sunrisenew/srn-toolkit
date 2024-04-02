@@ -643,7 +643,7 @@ function handleExtractPatch(selectedPatch?: PatchModel) {
     .finally(() => extractPatchInfo.value.processing = false)
 }
 
-const SETTING_NAME = 'extract-patch'
+const MODULE_NAME = 'extract-patch'
 const settingModel = ref<SettingModel>({
   defaultPatchRootDirectory: '',
   modules: [buildDefaultModuleSetting()]
@@ -746,7 +746,7 @@ const loadingSetting = ref(false)
 
 async function loadSetting() {
   loadingSetting.value = true
-  await useLoadSetting(SETTING_NAME).then(setting => {
+  await useLoadSetting(MODULE_NAME).then(setting => {
     settingModel.value = setting ?? settingModel.value
   }).catch(error => window.$message?.error(error.message))
     .finally(() => loadingSetting.value = false)
@@ -756,7 +756,7 @@ const savingSetting = ref(false)
 
 function saveSetting() {
   savingSetting.value = true
-  useSaveSetting(SETTING_NAME, settingModel.value).then(() => {
+  useSaveSetting(MODULE_NAME, settingModel.value).then(() => {
     window.$message?.success('保存成功')
     toggleShowSetting(false)
   }).catch(error => window.$message?.error(error.message))
@@ -768,8 +768,8 @@ function handleSaveSetting() {
 }
 
 async function handleShowSettingFileInFolder() {
-  await useSaveSetting(SETTING_NAME, settingModel.value)
-  useShowSettingFileInFolder(SETTING_NAME)
+  await useSaveSetting(MODULE_NAME, settingModel.value)
+  useShowSettingFileInFolder(MODULE_NAME)
 }
 
 function handleGuide() {
