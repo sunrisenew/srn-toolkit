@@ -64,9 +64,7 @@
                 <n-input v-model:value="patch.metaFilename" clearable></n-input>
               </n-form-item>
               <n-form-item class="items-info-text" label="条目" :path="`patches[${patchIndex}].itemsInfo.text`" :rule="{ required: true, message: '条目不能为空' }">
-                <n-input-group>
-                  <n-input v-model:value="patch.itemsInfo.text" type="textarea" clearable @change="handleItemsTextChange(patch)"></n-input>
-                </n-input-group>
+                <n-input v-model:value="patch.itemsInfo.text" type="textarea" clearable @change="handleItemsTextChange(patch)"></n-input>
               </n-form-item>
               <n-divider></n-divider>
               <n-collapse>
