@@ -112,7 +112,7 @@ function registerOpenFilesAndDirectoriesEvent() {
 
 function registerLoadSetting() {
   ipcMain.handle('setting:loadSetting', async (event, name: string) => {
-    const settingPath = path.resolve(app.getPath('home'), `.${app.getName()}`, 'settings', `${name}.json`)
+    const settingPath = path.resolve(app.getPath('userData'), 'settings', `${name}.json`)
 
     try {
       await access(settingPath)
@@ -132,7 +132,7 @@ function registerLoadSetting() {
 
 function registerSaveSetting() {
   ipcMain.handle('setting:saveSetting', async (event, name: string, setting: Record<string, unknown>) => {
-    const settingPath = path.resolve(app.getPath('home'), `.${app.getName()}`, 'settings', `${name}.json`)
+    const settingPath = path.resolve(app.getPath('userData'), 'settings', `${name}.json`)
 
     await mkdir(path.dirname(settingPath), {
       recursive: true
@@ -144,7 +144,7 @@ function registerSaveSetting() {
 
 function registerShowSettingInFolder() {
   ipcMain.handle('setting:showSettingInFolder', async (event, name: string) => {
-    const settingPath = path.resolve(app.getPath('home'), `.${app.getName()}`, 'settings', `${name}.json`)
+    const settingPath = path.resolve(app.getPath('userData'), 'settings', `${name}.json`)
     try {
       await access(settingPath)
     } catch (error) {
