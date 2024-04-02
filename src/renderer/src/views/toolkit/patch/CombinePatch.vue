@@ -143,7 +143,7 @@
             <n-h2 prefix="bar">基本配置</n-h2>
             <n-form-item class="custom-seven-zip" label="自定义7z程序" path="customSevenZip">
               <n-input-group>
-                <n-input v-model:value="settingModel.customSevenZip" clearable></n-input>
+                <n-input v-model:value="settingModel.customSevenZip" readonly></n-input>
                 <n-button type="info" ghost @click="handleOpenFile(settingModel, 'customSevenZip')">选择</n-button>
               </n-input-group>
             </n-form-item>
