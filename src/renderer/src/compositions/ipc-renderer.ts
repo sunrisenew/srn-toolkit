@@ -36,8 +36,8 @@ export function useSaveSetting(name: string, setting: Record<string, unknown>) {
   return window.electron.ipcRenderer.invoke('setting:saveSetting', name, JSON.parse(JSON.stringify(setting)))
 }
 
-export function useShowSettingInFolder(name: string) {
-  return window.electron.ipcRenderer.invoke('setting:showSettingInFolder', name)
+export function useShowSettingFileInFolder(name: string) {
+  return window.electron.ipcRenderer.invoke('setting:showSettingFileInFolder', name)
 }
 
 export function useShowItemInFolder(fullPath: string, showFolder = true) {

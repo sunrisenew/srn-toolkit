@@ -253,7 +253,7 @@ type ModuleSettingModel = SettingModel['modules'][0]
 </script>
 
 <script setup lang="ts">
-import { useAddArchive, useCopyFile, useDeleteArchive, useDeleteDirectory, useExtractFullArchive, useLoadSetting, useNodePath, useOpenDirectoryDialog, useOpenFileDialog, useReadJsonFile, useSaveSetting, useShowItemInFolder, useShowSettingInFolder, useTestArchive } from '@renderer/compositions/ipc-renderer'
+import { useAddArchive, useCopyFile, useDeleteArchive, useDeleteDirectory, useExtractFullArchive, useLoadSetting, useNodePath, useOpenDirectoryDialog, useOpenFileDialog, useReadJsonFile, useSaveSetting, useShowItemInFolder, useShowSettingFileInFolder, useTestArchive } from '@renderer/compositions/ipc-renderer'
 import { parseFileInfo } from '@renderer/utils/path'
 import { driver } from 'driver.js'
 import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSpace, NSpin, NTag, NText, NThing } from 'naive-ui'
@@ -622,7 +622,7 @@ function handleSaveSetting() {
 
 async function handleShowSettingFileInFolder() {
   await useSaveSetting(SETTING_NAME, settingModel.value)
-  useShowSettingInFolder(SETTING_NAME)
+  useShowSettingFileInFolder(SETTING_NAME)
 }
 
 function handleGuide() {

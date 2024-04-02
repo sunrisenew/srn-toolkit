@@ -52,7 +52,7 @@ export function registerIpcMainEvents() {
   registerOpenFilesAndDirectoriesEvent()
   registerLoadSetting()
   registerSaveSetting()
-  registerShowSettingInFolder()
+  registerShowSettingFileInFolder()
   registerShowItemInFolder()
   registerCopyFile()
   registerReadJsonFile()
@@ -112,47 +112,47 @@ function registerOpenFilesAndDirectoriesEvent() {
 
 function registerLoadSetting() {
   ipcMain.handle('setting:loadSetting', async (event, name: string) => {
-    const settingPath = path.resolve(app.getPath('userData'), 'settings', `${name}.json`)
+    const settingFilePath = path.resolve(app.getPath('userData'), 'settings', `${name}.json`)
 
     try {
-      await access(settingPath)
+      await access(settingFilePath)
     } catch (error) {
       return undefined
     }
 
-    return readFile(settingPath, 'utf-8').then(setting => {
+    return readFile(settingFilePath, 'utf-8').then(setting => {
       if (setting) {
         return JSON.parse(setting)
       }
 
       return undefined
-    }).catch(error => Promise.reject(new Error(`文件读取错误 | ${settingPath}`, { cause: error })))
+    }).catch(error => Promise.reject(new Error(`文件读取错误 | ${settingFilePath}`, { cause: error })))
   })
 }
 
 function registerSaveSetting() {
   ipcMain.handle('setting:saveSetting', async (event, name: string, setting: Record<string, unknown>) => {
-    const settingPath = path.resolve(app.getPath('userData'), 'settings', `${name}.json`)
+    const settingFilePath = path.resolve(app.getPath('userData'), 'settings', `${name}.json`)
 
-    await mkdir(path.dirname(settingPath), {
+    await mkdir(path.dirname(settingFilePath), {
       recursive: true
     })
 
-    return writeFile(settingPath, JSON.stringify(setting, undefined, 2), 'utf-8').catch(error => Promise.reject(new Error(`文件写入错误 | ${settingPath}`, { cause: error })))
+    return writeFile(settingFilePath, JSON.stringify(setting, undefined, 2), 'utf-8').catch(error => Promise.reject(new Error(`文件写入错误 | ${settingFilePath}`, { cause: error })))
   })
 }
 
-function registerShowSettingInFolder() {
-  ipcMain.handle('setting:showSettingInFolder', async (event, name: string) => {
-    const settingPath = path.resolve(app.getPath('userData'), 'settings', `${name}.json`)
+function registerShowSettingFileInFolder() {
+  ipcMain.handle('setting:showSettingFileInFolder', async (event, name: string) => {
+    const settingFilePath = path.resolve(app.getPath('userData'), 'settings', `${name}.json`)
     try {
-      await access(settingPath)
+      await access(settingFilePath)
     } catch (error) {
-      shell.showItemInFolder(path.dirname(settingPath))
+      shell.showItemInFolder(path.dirname(settingFilePath))
       return
     }
 
-    shell.showItemInFolder(settingPath)
+    shell.showItemInFolder(settingFilePath)
   })
 }
 
