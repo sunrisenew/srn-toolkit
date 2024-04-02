@@ -20,7 +20,7 @@
             <n-form-item class="build-package-file-path full-width" :label="`构建包文件路径 - ${buildPackageIndex + 1}`" :path="`buildPackages[${buildPackageIndex}].filePath`" :rule="{ required: true, message: '构建包文件路径不能为空' }" label-width="160">
               <n-input-group>
                 <n-input v-model:value="buildPackage.filePath" readonly></n-input>
-                <n-button type="info" ghost @click="handleOpenFile(buildPackage, 'filePath', [{ name: 'War Packages', extensions: ['war'] }])">选择</n-button>
+                <n-button type="info" ghost @click="handleOpenFile(buildPackage, 'filePath', [{ name: 'Build Package', extensions: ['war'] }])">选择</n-button>
               </n-input-group>
             </n-form-item>
           </template>
@@ -51,7 +51,7 @@
               <n-form-item class="meta-file-path" label="元数据文件路径" :path="`patches[${patchIndex}].metaFilePath`" :rule="{ required: true, message: '元数据文件路径不能为空' }">
                 <n-input-group>
                   <n-input v-model:value="patch.metaFilePath" readonly></n-input>
-                  <n-button type="info" ghost @click="handleOpenFile(patch, 'metaFilePath', [], handleMetaFilePathChange)">选择</n-button>
+                  <n-button type="info" ghost @click="handleOpenFile(patch, 'metaFilePath', [{ name: 'Meta File', extensions: ['json'] }], handleMetaFilePathChange)">选择</n-button>
                 </n-input-group>
               </n-form-item>
               <n-grid :y-gap="10">
