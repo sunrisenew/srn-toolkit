@@ -209,7 +209,7 @@ type Model = {
     directory: string
     relatedModuleNames: Array<string>
     items: Array<{
-      action: 'A' | 'M' | 'D'
+      action: '?' | 'A' | 'M' | 'D'
       originPath: string
       filePath: string
       moduleName: string
@@ -476,7 +476,7 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
           continue
         }
 
-        const { moduleName, targetFilename, classPath, extraItems, targetBuildPackages } = item
+        const { action, moduleName, targetFilename, classPath, extraItems, targetBuildPackages } = item
 
         for (const targetBuildPackage of targetBuildPackages) {
           if (combinePatchInfo.value.canceled) {
@@ -491,7 +491,7 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
           const matchedUnzippedJarPackagePath = unzippedJarPackagePathMap[moduleName]
           if (matchedUnzippedJarPackagePath) {
             try {
-              switch (item.action) {
+              switch (action) {
                 default:
                 case 'A':
                 case 'M': {
