@@ -18,8 +18,7 @@ module.exports = {
     'plugin:vue/vue3-recommended',
     '@electron-toolkit',
     '@electron-toolkit/eslint-config-ts/eslint-recommended',
-    '@vue/eslint-config-typescript/recommended',
-    '@vue/eslint-config-prettier'
+    '@vue/eslint-config-typescript/recommended'
   ],
   rules: {
     '@typescript-eslint/ban-ts-comment': ['error', { 'ts-ignore': 'allow-with-description' }],
