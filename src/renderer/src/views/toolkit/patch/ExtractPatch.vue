@@ -225,7 +225,10 @@
         </template>
         <template #footer>
           <n-space justify="space-between" style="width: 100%;">
-            <n-button type="info" ghost @click="handleShowSettingFileInFolder()">定位文件</n-button>
+            <n-space>
+              <n-button type="info" ghost @click="handleShowSettingFileInFolder()">定位文件</n-button>
+              <n-button type="info" ghost @click="handleLoadSetting()">加载配置</n-button>
+            </n-space>
             <n-space>
               <n-button type="info" ghost @click="toggleShowSetting(false)">取消</n-button>
               <n-button type="primary" :loading="savingSetting" @click="handleSaveSetting()">保存</n-button>
@@ -768,6 +771,10 @@ function handleSaveSetting() {
 async function handleShowSettingFileInFolder() {
   await useSaveSetting(MODULE_NAME, settingModel.value)
   useShowSettingFileInFolder(MODULE_NAME)
+}
+
+function handleLoadSetting() {
+  loadSetting()
 }
 
 function handleGuide() {
