@@ -313,6 +313,25 @@ type ModuleReplacementSettingModel = SettingModel['modules'][0]['setting']['repl
 type ModuleReplacementExtensionSettingModel = SettingModel['modules'][0]['setting']['replacements'][0]['extension']
 type ModuleReplacementPathSettingModel = SettingModel['modules'][0]['setting']['replacements'][0]['path']
 
+type PatchMeta = {
+  name: string
+  relatedModuleNames: string[]
+  itemTexts: string[]
+  items: Array<{
+    text: string
+    action: string
+    originPath: string
+    moduleName: string
+    targetFilename: string
+    classPath: string
+    extraItems: Array<{
+      targetFilename: string
+      classPath: string
+    }>
+  }>
+}
+type PatchItemMeta = PatchMeta['items'][0]
+
 </script>
 
 <script setup lang="ts">
@@ -566,19 +585,7 @@ function handleExtractPatch(selectedPatch?: PatchModel) {
         })
       }
 
-      type ItemMeta = {
-        text: string
-        action: string
-        originPath: string
-        moduleName: string
-        targetFilename: string
-        classPath: string
-        extraItems: Array<{
-          targetFilename: string
-          classPath: string
-        }>
-      }
-      const successItems: Array<ItemMeta> = []
+      const successItems: Array<PatchItemMeta> = []
       for (const item of items) {
         if (extractPatchInfo.value.canceled) {
           return
@@ -588,7 +595,7 @@ function handleExtractPatch(selectedPatch?: PatchModel) {
           continue
         }
 
-        const successItem: ItemMeta = {
+        const successItem: PatchItemMeta = {
           text: item.text,
           action: item.action,
           originPath: item.originPath,
@@ -624,12 +631,13 @@ function handleExtractPatch(selectedPatch?: PatchModel) {
 
       if (result.successCount > 0 && result.successCount === (scripts.length + items.length)) {
         selectedPatch.directory = buildPatchDirectory(selectedPatch)
-        await useWriteJsonFile(`${selectedPatch.directory}/${metaFilename}`, {
+        const patchMeta: PatchMeta = {
           name,
           relatedModuleNames,
           itemTexts: successItems.map(value => value.text),
           items: successItems
-        })
+        }
+        await useWriteJsonFile(`${selectedPatch.directory}/${metaFilename}`, patchMeta)
       }
 
       processedPatchCount++
