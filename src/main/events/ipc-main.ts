@@ -45,6 +45,7 @@ export function registerCreateDocsBrowserWindowEvent() {
 }
 
 export function registerIpcMainEvents() {
+  registerGetAppVersion()
   registerGetModuleTempPath()
   registerOpenFileEvent()
   registerOpenFilesEvent()
@@ -64,6 +65,13 @@ export function registerIpcMainEvents() {
   registerExtractFullArchive()
   registerAddArchive()
   registerDeleteArchive()
+}
+
+function registerGetAppVersion() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  ipcMain.handle('app:getVersion', event => {
+    return app.getVersion()
+  })
 }
 
 function registerGetModuleTempPath() {

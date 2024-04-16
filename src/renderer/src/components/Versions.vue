@@ -1,5 +1,6 @@
 <template>
   <ul class="versions">
+    <li class="electron-version">Application v{{ appVersion }}</li>
     <li class="electron-version">Electron v{{ versions.electron }}</li>
     <li class="chrome-version">Chromium v{{ versions.chrome }}</li>
     <li class="node-version">Node v{{ versions.node }}</li>
@@ -8,7 +9,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { useGetAppVersion } from '@renderer/compositions/ipc-renderer'
+import { onMounted, ref } from 'vue'
+
+const appVersion = ref('')
+
+onMounted(async () => {
+  appVersion.value = await useGetAppVersion()
+})
 
 const versions = ref({ ...window.electron.process.versions })
 </script>

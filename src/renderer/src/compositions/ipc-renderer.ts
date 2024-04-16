@@ -8,6 +8,10 @@ export function useCreateBrowserWindow(channel, options?: Record<string, unknown
   return window.electron.ipcRenderer.invoke(channel, options)
 }
 
+export function useGetAppVersion() {
+  return window.electron.ipcRenderer.invoke('app:getVersion')
+}
+
 export function useGetModuleTempPath(moduleName: string) {
   return window.electron.ipcRenderer.invoke('app:getModuleTempPath', moduleName)
 }
