@@ -243,7 +243,7 @@
 <script lang="ts">
 
 type Model = {
-  patchRootDirectory: string,
+  patchRootDirectory: string
   patches: Array<{
     name: string
     directory: string
@@ -289,7 +289,8 @@ type PatchScriptModel = Model['patches'][0]['scripts'][0]
 type PatchItemModel = Model['patches'][0]['itemsInfo']['items'][0]
 
 type SettingModel = {
-  defaultPatchRootDirectory: string,
+  version: string
+  defaultPatchRootDirectory: string
   modules: Array<{
     name: string
     setting: {
@@ -335,20 +336,27 @@ type PatchItemMeta = PatchMeta['items'][0]
 </script>
 
 <script setup lang="ts">
-import { useCopyFile, useGlobby, useLoadSetting, useOpenDirectoryDialog, useSaveSetting, useShowItemInFolder, useShowSettingFileInFolder, useWriteFile, useWriteJsonFile } from '@renderer/compositions/ipc-renderer'
+import { useCopyFile, useGetAppVersion, useGlobby, useLoadSetting, useOpenDirectoryDialog, useSaveSetting, useShowItemInFolder, useShowSettingFileInFolder, useWriteFile, useWriteJsonFile } from '@renderer/compositions/ipc-renderer'
 import { parseFileInfo, parsePathInfo } from '@renderer/utils/path'
 import { driver } from 'driver.js'
+import { defaultsDeep as _defaultsDeep } from 'lodash-es'
 import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSpace, NSpin, NTag, NText, NThing } from 'naive-ui'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
+const appVersion = ref('')
+
+const MODULE_NAME = 'extract-patch'
+
 const route = ref(useRoute())
 const title = route.value.meta?.title
 
-onMounted(() => {
-  loadSetting().then(() => {
-    model.value.patchRootDirectory = formattedSetting.value.defaultPatchRootDirectory || ''
-  })
+onMounted(async () => {
+  appVersion.value = await useGetAppVersion()
+
+  await loadSetting()
+
+  model.value.patchRootDirectory = settingModel.value.defaultPatchRootDirectory || ''
 })
 
 const model = ref<Model>({
@@ -652,8 +660,8 @@ function handleExtractPatch(selectedPatch?: PatchModel) {
     .finally(() => extractPatchInfo.value.processing = false)
 }
 
-const MODULE_NAME = 'extract-patch'
 const settingModel = ref<SettingModel>({
+  version: '',
   defaultPatchRootDirectory: '',
   modules: [buildDefaultModuleSetting()]
 })
@@ -755,8 +763,15 @@ const loadingSetting = ref(false)
 
 async function loadSetting() {
   loadingSetting.value = true
-  await useLoadSetting(MODULE_NAME).then(setting => {
-    settingModel.value = setting ?? settingModel.value
+  await useLoadSetting(MODULE_NAME).then((setting: SettingModel) => {
+    if (setting.version === appVersion.value) {
+      settingModel.value = setting
+    } else {
+      settingModel.value = _defaultsDeep(setting, {
+        modules: Array.from(Array(setting.modules.length), buildDefaultModuleSetting)
+      }, settingModel.value)
+      settingModel.value.version = appVersion.value
+    }
   }).catch(error => window.$message?.error(error.message))
     .finally(() => loadingSetting.value = false)
 }

@@ -283,6 +283,7 @@ type PatchModel = Model['patches'][0]
 type PatchItemModel = Model['patches'][0]['items'][0]
 
 type SettingModel = {
+  version: string
   customSevenZip: string
   tempUnzipDirectory: string
   modules: Array<{
@@ -307,20 +308,26 @@ type ModuleSettingModel = SettingModel['modules'][0]
 </script>
 
 <script setup lang="ts">
-import { useAddArchive, useCopyFile, useDeleteArchive, useDeleteDirectory, useExtractFullArchive, useGetModuleTempPath, useLoadSetting, useNodePath, useOpenDirectoryDialog, useOpenFileDialog, useReadJsonFile, useSaveSetting, useShowItemInFolder, useShowSettingFileInFolder, useTestArchive } from '@renderer/compositions/ipc-renderer'
+import { useAddArchive, useCopyFile, useDeleteArchive, useDeleteDirectory, useExtractFullArchive, useGetAppVersion, useGetModuleTempPath, useLoadSetting, useNodePath, useOpenDirectoryDialog, useOpenFileDialog, useReadJsonFile, useSaveSetting, useShowItemInFolder, useShowSettingFileInFolder, useTestArchive } from '@renderer/compositions/ipc-renderer'
 import { parseFileInfo } from '@renderer/utils/path'
 import { driver } from 'driver.js'
+import { defaultsDeep as _defaultsDeep } from 'lodash-es'
 import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSelect, NSpace, NSpin, NSwitch, NTag, NText, NThing } from 'naive-ui'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 const nodePath = useNodePath()
+const appVersion = ref('')
+
+const MODULE_NAME = 'combine-patch'
 
 const route = ref(useRoute())
 const title = route.value.meta?.title
 
-onMounted(() => {
-  loadSetting()
+onMounted(async () => {
+  appVersion.value = await useGetAppVersion()
+
+  await loadSetting()
 })
 
 const model = ref<Model>({
@@ -669,8 +676,8 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
     .finally(() => combinePatchInfo.value.processing = false)
 }
 
-const MODULE_NAME = 'combine-patch'
 const settingModel = ref<SettingModel>({
+  version: '',
   customSevenZip: '',
   tempUnzipDirectory: '',
   modules: [buildDefaultModuleSetting()]
@@ -733,8 +740,16 @@ const loadingSetting = ref(false)
 
 async function loadSetting() {
   loadingSetting.value = true
-  await useLoadSetting(MODULE_NAME).then(async setting => {
-    settingModel.value = setting ?? settingModel.value
+  await useLoadSetting(MODULE_NAME).then(async (setting: SettingModel) => {
+    if (setting.version === appVersion.value) {
+      settingModel.value = setting
+    } else {
+      settingModel.value = _defaultsDeep(setting, {
+        modules: Array.from(Array(setting.modules.length), buildDefaultModuleSetting)
+      }, settingModel.value)
+      settingModel.value.version = appVersion.value
+    }
+
     if (!settingModel.value.tempUnzipDirectory) {
       settingModel.value.tempUnzipDirectory = await useGetModuleTempPath(MODULE_NAME)
     }
