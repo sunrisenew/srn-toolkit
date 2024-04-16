@@ -13,16 +13,28 @@
     </n-page-header>
     <n-divider></n-divider>
     <n-spin :show="combinePatchInfo.processing" size="large">
-      <n-form ref="modelFormRef" class="model" :model="model" label-align="left" label-placement="left" label-width="128">
+      <n-form ref="modelFormRef" class="model" :model="model" label-align="left" label-placement="left" label-width="160">
         <n-h2 prefix="bar">构建包信息</n-h2>
-        <n-dynamic-input v-model:value="model.buildPackages" :min="1" :item-class="'flex-auto'" :on-create="handleCreateBuildPackage">
+        <n-dynamic-input v-model:value="model.buildPackages" :min="1" :on-create="handleCreateBuildPackage">
           <template #default="{ value: buildPackage, index: buildPackageIndex }: { value: BuildPackageModel, index: number }">
-            <n-form-item class="build-package-file-path full-width" :label="`构建包文件路径 - ${buildPackageIndex + 1}`" :path="`buildPackages[${buildPackageIndex}].filePath`" :rule="{ required: true, message: '构建包文件路径不能为空' }" label-width="160">
-              <n-input-group>
-                <n-input v-model:value="buildPackage.filePath" placeholder="请选择" readonly></n-input>
-                <n-button type="info" ghost @click="handleOpenFile(buildPackage, 'filePath', [{ name: 'Build Package', extensions: ['war'] }])">选择</n-button>
-              </n-input-group>
-            </n-form-item>
+            <n-card class="build-package" hoverable>
+              <template #header>
+                <n-h3 prefix="bar" style="margin: 0;">构建包 - {{ buildPackageIndex + 1 }}</n-h3>
+              </template>
+              <n-form-item class="build-package-file-path" label="构建包文件路径" :path="`buildPackages[${buildPackageIndex}].filePath`" :rule="{ required: true, message: '构建包文件路径不能为空' }">
+                <n-input-group>
+                  <n-input v-model:value="buildPackage.filePath" placeholder="请选择" readonly></n-input>
+                  <n-button type="info" ghost @click="handleOpenFile(buildPackage, 'filePath', [{ name: 'Build Package', extensions: ['war'] }])">选择</n-button>
+                </n-input-group>
+              </n-form-item>
+              <n-form-item label="直接合并" :path="`buildPackages[${buildPackageIndex}].directCombine`">
+                <n-switch v-model:value="buildPackage.directCombine"></n-switch>
+              </n-form-item>
+              <n-form-item v-if="buildPackage.directCombine"
+                class="build-package-module-name" label="模块名称" :path="`buildPackages[${buildPackageIndex}].moduleName`" :rule="{ required: buildPackage.directCombine, message: '模块名称不能为空' }">
+                <n-select v-model:value="buildPackage.moduleName" :options="settingModuleOptions" placeholder="请选择" clearable></n-select>
+              </n-form-item>
+            </n-card>
           </template>
         </n-dynamic-input>
         <n-h2 prefix="bar">增量包信息</n-h2>
@@ -116,6 +128,12 @@
                           <n-text class="clickable" type="info" underline @click="handleShowItemInFolder(targetBuildPackage.filePath)">{{ targetBuildPackage.filePath }}</n-text>
                         </div>
                       </n-grid-item>
+                      <n-grid-item :span="2">目标直接合并构建包文件路径</n-grid-item>
+                      <n-grid-item :span="22">
+                        <div v-for="(targetDirectCombineBuildPackage, targetDirectCombineBuildPackageIndex) in item.targetDirectCombineBuildPackages" :key="targetDirectCombineBuildPackageIndex">
+                          <n-text class="clickable" type="info" underline @click="handleShowItemInFolder(targetDirectCombineBuildPackage.filePath)">{{ targetDirectCombineBuildPackage.filePath }}</n-text>
+                        </div>
+                      </n-grid-item>
                       <n-grid-item :span="2">信息</n-grid-item>
                       <n-grid-item :span="22">
                         <n-text :type="item.status">{{ item.message }}</n-text>
@@ -169,9 +187,32 @@
                         <n-input v-model:value="module.name" clearable></n-input>
                       </n-form-item>
                       <n-h3 prefix="bar">配置信息</n-h3>
-                      <n-form-item label="Jar包路径" :path="`modules[${moduleIndex}].setting.jarPackagePath`" :rule="{ required: true, message: 'Jar包路径不能为空' }">
+                      <n-form-item label="直接合并" :path="`modules[${moduleIndex}].setting.directCombine`">
+                        <n-switch v-model:value="module.setting.directCombine"></n-switch>
+                      </n-form-item>
+                      <n-form-item label="Jar包路径" :path="`modules[${moduleIndex}].setting.jarPackagePath`" :rule="{ required: !module.setting.directCombine, message: 'Jar包路径不能为空' }">
                         <n-input v-model:value="module.setting.jarPackagePath" clearable></n-input>
                       </n-form-item>
+                      <n-form-item v-if="module.setting.directCombine"
+                        label="默认直接类路径" :path="`modules[${moduleIndex}].setting.defaultDirectClassPath`" :rule="{ required: true, message: '默认直接类路径不能为空' }">
+                        <n-input v-model:value="module.setting.defaultDirectClassPath" clearable></n-input>
+                      </n-form-item>
+                      <n-collapse v-if="module.setting.directCombine" :default-expanded-names="['otherDirectClassPath']">
+                        <n-collapse-item title="其它直接类路径" name="otherDirectClassPath">
+                          <n-form-item label="扩展名组" :path="`modules[${moduleIndex}].setting.otherDirectClassPath.extensions`">
+                            <n-select v-model:value="module.setting.otherDirectClassPath.extensions" :show-arrow="false" :show="false" placeholder="请选择" tag multiple filterable clearable></n-select>
+                          </n-form-item>
+                          <n-form-item label="类路径" :path="`modules[${moduleIndex}].setting.otherDirectClassPath.classPath`">
+                            <n-input v-model:value="module.setting.otherDirectClassPath.classPath" clearable></n-input>
+                          </n-form-item>
+                          <n-form-item label="原替换" :path="`modules[${moduleIndex}].setting.otherDirectClassPath.replacement.source`">
+                            <n-input v-model:value="module.setting.otherDirectClassPath.replacement.source" clearable></n-input>
+                          </n-form-item>
+                          <n-form-item label="目标替换" :path="`modules[${moduleIndex}].setting.otherDirectClassPath.replacement.target`">
+                            <n-input v-model:value="module.setting.otherDirectClassPath.replacement.target" clearable></n-input>
+                          </n-form-item>
+                        </n-collapse-item>
+                      </n-collapse>
                     </n-collapse-item>
                   </n-collapse>
                 </n-card>
@@ -201,6 +242,8 @@
 type Model = {
   buildPackages: Array<{
     filePath: string
+    directCombine: boolean
+    moduleName: string
     unzipJarPackageDestDirectory: string
     unzippedJarPackagePathMap: {
       [key: string]: string
@@ -216,9 +259,6 @@ type Model = {
       originPath: string
       filePath: string
       moduleName: string
-      moduleSetting: {
-        jarPackagePath: string
-      }
       targetFilename: string
       classPath: string
       extraItems: Array<{
@@ -227,6 +267,7 @@ type Model = {
         classPath: string
       }>
       targetBuildPackages: Array<BuildPackageModel>
+      targetDirectCombineBuildPackages: Array<BuildPackageModel>
       status: 'success' | 'info' | 'warning' | 'error'
       message: string
     }>
@@ -247,7 +288,17 @@ type SettingModel = {
   modules: Array<{
     name: string
     setting: {
+      directCombine: boolean
       jarPackagePath: string
+      defaultDirectClassPath: string
+      otherDirectClassPath: {
+        extensions: Array<string>
+        classPath: string
+        replacement: {
+          source: string
+          target: string
+        }
+      }
     }
   }>
 }
@@ -259,7 +310,7 @@ type ModuleSettingModel = SettingModel['modules'][0]
 import { useAddArchive, useCopyFile, useDeleteArchive, useDeleteDirectory, useExtractFullArchive, useGetModuleTempPath, useLoadSetting, useNodePath, useOpenDirectoryDialog, useOpenFileDialog, useReadJsonFile, useSaveSetting, useShowItemInFolder, useShowSettingFileInFolder, useTestArchive } from '@renderer/compositions/ipc-renderer'
 import { parseFileInfo } from '@renderer/utils/path'
 import { driver } from 'driver.js'
-import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSpace, NSpin, NTag, NText, NThing } from 'naive-ui'
+import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSelect, NSpace, NSpin, NSwitch, NTag, NText, NThing } from 'naive-ui'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -281,6 +332,8 @@ const modelFormRef = ref<FormInst | null>(null)
 function buildDefaultBuildPackage(): BuildPackageModel {
   return {
     filePath: '',
+    directCombine: false,
+    moduleName: '',
     unzipJarPackageDestDirectory: '',
     unzippedJarPackagePathMap: {}
   }
@@ -353,9 +406,9 @@ async function parsePatch(patch: PatchModel) {
     meta.items.forEach((item: PatchItemModel) => {
       const { moduleName, targetFilename, extraItems } = item
       relatedModuleNames.add(moduleName)
-      const moduleSetting = formattedSetting.value.modules[moduleName]
+      const { modules: moduleSettings } = formattedSetting.value
+      const moduleSetting = moduleSettings[moduleName]
       Object.assign(item, moduleSetting ? {
-        moduleSetting: JSON.parse(JSON.stringify(moduleSetting)),
         status: 'info',
         message: '待处理'
       } : {
@@ -363,7 +416,8 @@ async function parsePatch(patch: PatchModel) {
         message: `未找到模块配置 | ${JSON.stringify({ moduleName })}`
       }, {
         filePath: nodePath.resolve(patch.directory, targetFilename),
-        targetBuildPackages: []
+        targetBuildPackages: [],
+        targetDirectCombineBuildPackages: []
       })
 
       extraItems.forEach(extraItem => Object.assign(extraItem, {
@@ -381,29 +435,27 @@ async function handlePreCombinePatch(selectedPatch?: PatchModel) {
   await modelFormRef.value?.validate().then(async () => {
     combinePatchInfo.value.processing = true
 
-    const customSevenZip = formattedSetting.value.customSevenZip
+    const { customSevenZip, tempUnzipDirectory, modules: moduleSettings } = formattedSetting.value
     const { buildPackages, patches } = model.value
 
     const selectedPatches = selectedPatch ? [selectedPatch] : patches
     const allPatchItems = selectedPatches.reduce((result, selectedPatch) => result.concat(selectedPatch.items), ([] as Array<PatchItemModel>))
 
     for (const patchItem of allPatchItems) {
-      if (patchItem.status === 'error') {
-        continue
-      }
-
-      const { moduleName, moduleSetting } = patchItem
+      const { moduleName } = patchItem
+      const moduleSetting = moduleSettings[moduleName]
 
       patchItem.targetBuildPackages = []
+      patchItem.targetDirectCombineBuildPackages = []
 
       for (const buildPackage of buildPackages) {
         const { filePath, unzippedJarPackagePathMap } = buildPackage
 
-        buildPackage.unzipJarPackageDestDirectory = nodePath.resolve(formattedSetting.value.tempUnzipDirectory, `${nodePath.parse(buildPackage.filePath).name}-${Date.now()}`)
+        buildPackage.unzipJarPackageDestDirectory = buildPackage.unzipJarPackageDestDirectory || nodePath.resolve(tempUnzipDirectory, `${nodePath.parse(buildPackage.filePath).name}-${Date.now()}`)
 
+        const jarPackagePath = moduleSetting.jarPackagePath
         const unzippedJarPackagePath = unzippedJarPackagePathMap[moduleName]
-        if (!unzippedJarPackagePath) {
-          const jarPackagePath = moduleSetting.jarPackagePath
+        if (jarPackagePath && !unzippedJarPackagePath) {
           try {
             await useTestArchive(customSevenZip, filePath, [jarPackagePath])
           } catch (error) {
@@ -416,11 +468,18 @@ async function handlePreCombinePatch(selectedPatch?: PatchModel) {
         if (unzippedJarPackagePathMap[moduleName]) {
           patchItem.targetBuildPackages.push(buildPackage)
         }
+
+        if (moduleSetting.directCombine && buildPackage.directCombine && moduleName === buildPackage.moduleName) {
+          patchItem.targetDirectCombineBuildPackages.push(buildPackage)
+        }
       }
 
-      if (patchItem.targetBuildPackages.length === 0) {
+      if (patchItem.targetBuildPackages.length === 0 && patchItem.targetDirectCombineBuildPackages.length === 0) {
         patchItem.status = 'error'
         patchItem.message = '未找到目标构建包 | 请确认选择的构建包'
+      } else {
+        patchItem.status = 'info'
+        patchItem.message = ''
       }
     }
 
@@ -452,7 +511,7 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
     combinePatchInfo.value.canceled = false
     combinePatchInfo.value.processedPercent = 0
 
-    const customSevenZip = formattedSetting.value.customSevenZip
+    const { customSevenZip, modules: moduleSettings } = formattedSetting.value
     const { buildPackages, patches } = model.value
 
     for (const buildPackage of buildPackages) {
@@ -479,7 +538,10 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
           continue
         }
 
-        const { action, moduleName, targetFilename, classPath, extraItems, targetBuildPackages } = item
+        const { action, moduleName, targetFilename, classPath, extraItems, targetBuildPackages, targetDirectCombineBuildPackages } = item
+        const classPathFileInfo = parseFileInfo(classPath)
+        const moduleSetting = moduleSettings[moduleName]
+        const { defaultDirectClassPath, otherDirectClassPath } = moduleSetting
 
         for (const targetBuildPackage of targetBuildPackages) {
           if (combinePatchInfo.value.canceled) {
@@ -509,7 +571,6 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
                 }
                 case 'D': {
                   await useDeleteArchive(customSevenZip, nodePath.resolve(unzipJarPackageDestDirectory, matchedUnzippedJarPackagePath), [classPath])
-                  const classPathFileInfo = parseFileInfo(classPath)
                   await useDeleteArchive(customSevenZip, nodePath.resolve(unzipJarPackageDestDirectory, matchedUnzippedJarPackagePath), [`${classPathFileInfo?.directory}${classPathFileInfo?.baseName}$*${classPathFileInfo?.extension}`])
                   break
                 }
@@ -517,14 +578,74 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
             } catch (error) {
               item.status = 'error'
               item.message = `文件复制或压缩错误 | ${(error as Error).message}`
-              result.errorCount++
             }
           }
         }
 
-        item.status = 'success'
-        item.message = '成功'
-        result.successCount++
+        if (targetDirectCombineBuildPackages.length !== 0) {
+          const replacedClassPath = classPath.replaceAll(otherDirectClassPath.replacement.source, otherDirectClassPath.replacement.target)
+          const replacedClassPathFileInfo = parseFileInfo(replacedClassPath)
+
+          for (const targetDirectCombineBuildPackage of targetDirectCombineBuildPackages) {
+            if (combinePatchInfo.value.canceled) {
+              return
+            }
+
+            if (item.status === 'error') {
+              continue
+            }
+
+            const { filePath: buildFilePath } = targetDirectCombineBuildPackage
+            try {
+              switch (action) {
+                default:
+                case 'A':
+                case 'M': {
+                  await useCopyFile(`${directory}/${targetFilename}`, nodePath.resolve(directory, defaultDirectClassPath, classPath))
+                  await useAddArchive(customSevenZip, nodePath.resolve(buildFilePath), directory, [nodePath.join(defaultDirectClassPath, classPath)])
+
+                  for (const extraItem of extraItems) {
+                    await useCopyFile(`${directory}/${extraItem.targetFilename}`, nodePath.resolve(directory, defaultDirectClassPath, extraItem.classPath))
+                    await useAddArchive(customSevenZip, nodePath.resolve(buildFilePath), directory, [nodePath.join(defaultDirectClassPath, extraItem.classPath)])
+                  }
+
+                  if (otherDirectClassPath.extensions.includes(replacedClassPathFileInfo?.extension || '')) {
+                    await useCopyFile(`${directory}/${targetFilename}`, nodePath.join(directory, otherDirectClassPath.classPath, replacedClassPath))
+                    await useAddArchive(customSevenZip, nodePath.resolve(buildFilePath), directory, [nodePath.join(otherDirectClassPath.classPath, replacedClassPath)])
+
+                    for (const extraItem of extraItems) {
+                      const replacedExtraClassPath = extraItem.classPath.replaceAll(otherDirectClassPath.replacement.source, otherDirectClassPath.replacement.target)
+                      await useCopyFile(`${directory}/${extraItem.targetFilename}`, nodePath.join(directory, otherDirectClassPath.classPath, replacedExtraClassPath))
+                      await useAddArchive(customSevenZip, nodePath.resolve(buildFilePath), directory, [nodePath.join(otherDirectClassPath.classPath, replacedExtraClassPath)])
+                    }
+                  }
+                  break
+                }
+                case 'D': {
+                  await useDeleteArchive(customSevenZip, nodePath.resolve(buildFilePath), [nodePath.join(defaultDirectClassPath, replacedClassPath)])
+                  await useDeleteArchive(customSevenZip, nodePath.resolve(buildFilePath), [nodePath.join(defaultDirectClassPath, `${replacedClassPathFileInfo?.directory}${replacedClassPathFileInfo?.baseName}$*${replacedClassPathFileInfo?.extension}`)])
+
+                  if (otherDirectClassPath.extensions.includes(replacedClassPathFileInfo?.extension || '')) {
+                    await useDeleteArchive(customSevenZip, nodePath.resolve(buildFilePath), [nodePath.join(otherDirectClassPath.classPath, replacedClassPath)])
+                    await useDeleteArchive(customSevenZip, nodePath.resolve(buildFilePath), [nodePath.join(otherDirectClassPath.classPath, `${replacedClassPathFileInfo?.directory}${replacedClassPathFileInfo?.baseName}$*${replacedClassPathFileInfo?.extension}`)])
+                  }
+                  break
+                }
+              }
+            } catch (error) {
+              item.status = 'error'
+              item.message = `文件复制或压缩错误 | ${(error as Error).message}`
+            }
+          }
+        }
+
+        if (item.status !== 'error') {
+          item.status = 'success'
+          item.message = '成功'
+          result.successCount++
+        } else {
+          result.errorCount++
+        }
       }
 
       processedPatchCount++
@@ -582,7 +703,17 @@ function buildDefaultModuleSetting(): ModuleSettingModel {
   return {
     name: '',
     setting: {
-      jarPackagePath: ''
+      directCombine: false,
+      jarPackagePath: '',
+      defaultDirectClassPath: 'WEB-INF/classes',
+      otherDirectClassPath: {
+        extensions: ['.js', '.html', '.css'],
+        classPath: '.',
+        replacement: {
+          source: 'META-INF/resources',
+          target: ''
+        }
+      }
     }
   }
 }
@@ -634,6 +765,16 @@ async function handleShowSettingFileInFolder() {
 function handleLoadSetting() {
   loadSetting()
 }
+
+const settingModuleOptions = computed<Array<{
+  label: string
+  value: string
+}>>(() => {
+  return Object.entries(formattedSetting.value.modules).filter(([, module]) => module.directCombine).map(([moduleName]) => ({
+    label: moduleName,
+    value: moduleName
+  }))
+})
 
 function handleGuide() {
   setTimeout(() => {
