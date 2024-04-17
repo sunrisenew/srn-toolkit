@@ -305,6 +305,14 @@ type SettingModel = {
 }
 type ModuleSettingModel = SettingModel['modules'][0]
 
+type FormattedSetting = {
+  customSevenZip: string
+  tempUnzipDirectory: string
+  modules: {
+    [key: string]: ModuleSettingModel['setting']
+  }
+}
+
 </script>
 
 <script setup lang="ts">
@@ -693,13 +701,7 @@ const settingModel = ref<SettingModel>({
   modules: [buildDefaultModuleSetting()]
 })
 const settingModelFormRef = ref<FormInst | null>(null)
-const formattedSetting = computed<{
-  customSevenZip: string
-  tempUnzipDirectory: string
-  modules: {
-    [key: string]: ModuleSettingModel['setting']
-  }
-}>(() => {
+const formattedSetting = computed<FormattedSetting>(() => {
   const settingCopy: SettingModel = JSON.parse(JSON.stringify(settingModel.value))
 
   const modules = settingCopy.modules.reduce((modulesResult, module) => {

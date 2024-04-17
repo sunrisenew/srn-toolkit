@@ -314,6 +314,17 @@ type ModuleReplacementSettingModel = SettingModel['modules'][0]['setting']['repl
 type ModuleReplacementExtensionSettingModel = SettingModel['modules'][0]['setting']['replacements'][0]['extension']
 type ModuleReplacementPathSettingModel = SettingModel['modules'][0]['setting']['replacements'][0]['path']
 
+type FormattedSetting = {
+  defaultPatchRootDirectory: string
+  modules: {
+    [key: string]: ModuleSettingModel['setting'] & {
+      replacements: {
+        [key: string]: ModuleReplacementSettingModel
+      }
+    }
+  }
+}
+
 type PatchMeta = {
   name: string
   relatedModuleNames: string[]
@@ -683,16 +694,7 @@ const settingModel = ref<SettingModel>({
   modules: [buildDefaultModuleSetting()]
 })
 const settingModelFormRef = ref<FormInst | null>(null)
-const formattedSetting = computed<{
-  defaultPatchRootDirectory: string
-  modules: {
-    [key: string]: ModuleSettingModel['setting'] & {
-      replacements: {
-        [key: string]: ModuleReplacementSettingModel
-      }
-    }
-  }
-}>(() => {
+const formattedSetting = computed<FormattedSetting>(() => {
   const settingCopy: SettingModel = JSON.parse(JSON.stringify(settingModel.value))
 
   const modules = settingCopy.modules.reduce((modulesResult, module) => {
