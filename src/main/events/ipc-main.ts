@@ -77,7 +77,7 @@ function registerGetAppVersion() {
 function registerGetModuleTempPath() {
   ipcMain.handle('app:getModuleTempPath', async (event, moduleName: string) => {
     const appTempPath = app.getPath('temp')
-    const moduleTempPath = path.resolve(appTempPath, moduleName)
+    const moduleTempPath = path.join(appTempPath, moduleName)
     await mkdir(moduleTempPath, {
       recursive: true
     })
@@ -132,7 +132,7 @@ function registerOpenFilesAndDirectoriesEvent() {
 
 function registerLoadSetting() {
   ipcMain.handle('setting:loadSetting', async (event, name: string) => {
-    const settingFilePath = path.resolve(app.getPath('userData'), 'settings', `${name}.json`)
+    const settingFilePath = path.join(app.getPath('userData'), 'settings', `${name}.json`)
 
     try {
       await access(settingFilePath)
@@ -152,7 +152,7 @@ function registerLoadSetting() {
 
 function registerSaveSetting() {
   ipcMain.handle('setting:saveSetting', async (event, name: string, setting: Record<string, unknown>) => {
-    const settingFilePath = path.resolve(app.getPath('userData'), 'settings', `${name}.json`)
+    const settingFilePath = path.join(app.getPath('userData'), 'settings', `${name}.json`)
 
     await mkdir(path.dirname(settingFilePath), {
       recursive: true
@@ -164,7 +164,7 @@ function registerSaveSetting() {
 
 function registerShowSettingFileInFolder() {
   ipcMain.handle('setting:showSettingFileInFolder', async (event, name: string) => {
-    const settingFilePath = path.resolve(app.getPath('userData'), 'settings', `${name}.json`)
+    const settingFilePath = path.join(app.getPath('userData'), 'settings', `${name}.json`)
     try {
       await access(settingFilePath)
     } catch (error) {

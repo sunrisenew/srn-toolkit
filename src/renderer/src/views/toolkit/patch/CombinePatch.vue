@@ -422,13 +422,13 @@ async function parsePatch(patch: PatchModel) {
         status: 'error',
         message: `未找到模块配置 | ${JSON.stringify({ moduleName })}`
       }, {
-        filePath: nodePath.resolve(patch.directory, targetFilename),
+        filePath: nodePath.join(patch.directory, targetFilename),
         targetBuildPackages: [],
         targetDirectCombineBuildPackages: []
       })
 
       extraItems.forEach(extraItem => Object.assign(extraItem, {
-        filePath: nodePath.resolve(patch.directory, extraItem.targetFilename)
+        filePath: nodePath.join(patch.directory, extraItem.targetFilename)
       }))
     })
     patch.items = meta.items
@@ -458,7 +458,7 @@ async function handlePreCombinePatch(selectedPatch?: PatchModel) {
       for (const buildPackage of buildPackages) {
         const { filePath, unzippedJarPackagePathMap } = buildPackage
 
-        buildPackage.unzipJarPackageDestDirectory = buildPackage.unzipJarPackageDestDirectory || nodePath.resolve(tempUnzipDirectory, `${nodePath.parse(buildPackage.filePath).name}-${Date.now()}`)
+        buildPackage.unzipJarPackageDestDirectory = buildPackage.unzipJarPackageDestDirectory || nodePath.join(tempUnzipDirectory, `${nodePath.parse(buildPackage.filePath).name}-${Date.now()}`)
 
         const jarPackagePath = moduleSetting.jarPackagePath
         const unzippedJarPackagePath = unzippedJarPackagePathMap[moduleName]
@@ -568,17 +568,17 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
                 case 'A':
                 case 'M': {
                   await useCopyFile(`${directory}/${targetFilename}`, `${directory}/${classPath}`)
-                  await useAddArchive(customSevenZip, nodePath.resolve(unzipJarPackageDestDirectory, matchedUnzippedJarPackagePath), directory, [classPath])
+                  await useAddArchive(customSevenZip, nodePath.join(unzipJarPackageDestDirectory, matchedUnzippedJarPackagePath), directory, [classPath])
 
                   for (const extraItem of extraItems) {
                     await useCopyFile(`${directory}/${extraItem.targetFilename}`, `${directory}/${extraItem.classPath}`)
-                    await useAddArchive(customSevenZip, nodePath.resolve(unzipJarPackageDestDirectory, matchedUnzippedJarPackagePath), directory, [extraItem.classPath])
+                    await useAddArchive(customSevenZip, nodePath.join(unzipJarPackageDestDirectory, matchedUnzippedJarPackagePath), directory, [extraItem.classPath])
                   }
                   break
                 }
                 case 'D': {
-                  await useDeleteArchive(customSevenZip, nodePath.resolve(unzipJarPackageDestDirectory, matchedUnzippedJarPackagePath), [classPath])
-                  await useDeleteArchive(customSevenZip, nodePath.resolve(unzipJarPackageDestDirectory, matchedUnzippedJarPackagePath), [`${classPathFileInfo?.directory}${classPathFileInfo?.baseName}$*${classPathFileInfo?.extension}`])
+                  await useDeleteArchive(customSevenZip, nodePath.join(unzipJarPackageDestDirectory, matchedUnzippedJarPackagePath), [classPath])
+                  await useDeleteArchive(customSevenZip, nodePath.join(unzipJarPackageDestDirectory, matchedUnzippedJarPackagePath), [`${classPathFileInfo?.directory}${classPathFileInfo?.baseName}$*${classPathFileInfo?.extension}`])
                   break
                 }
               }
@@ -608,33 +608,33 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
                 default:
                 case 'A':
                 case 'M': {
-                  await useCopyFile(`${directory}/${targetFilename}`, nodePath.resolve(directory, defaultDirectClassPath, classPath))
-                  await useAddArchive(customSevenZip, nodePath.resolve(buildFilePath), directory, [nodePath.join(defaultDirectClassPath, classPath)])
+                  await useCopyFile(`${directory}/${targetFilename}`, nodePath.join(directory, defaultDirectClassPath, classPath))
+                  await useAddArchive(customSevenZip, buildFilePath, directory, [nodePath.join(defaultDirectClassPath, classPath)])
 
                   for (const extraItem of extraItems) {
-                    await useCopyFile(`${directory}/${extraItem.targetFilename}`, nodePath.resolve(directory, defaultDirectClassPath, extraItem.classPath))
-                    await useAddArchive(customSevenZip, nodePath.resolve(buildFilePath), directory, [nodePath.join(defaultDirectClassPath, extraItem.classPath)])
+                    await useCopyFile(`${directory}/${extraItem.targetFilename}`, nodePath.join(directory, defaultDirectClassPath, extraItem.classPath))
+                    await useAddArchive(customSevenZip, buildFilePath, directory, [nodePath.join(defaultDirectClassPath, extraItem.classPath)])
                   }
 
                   if (otherDirectClassPath.extensions.includes(replacedClassPathFileInfo?.extension || '')) {
                     await useCopyFile(`${directory}/${targetFilename}`, nodePath.join(directory, otherDirectClassPath.classPath, replacedClassPath))
-                    await useAddArchive(customSevenZip, nodePath.resolve(buildFilePath), directory, [nodePath.join(otherDirectClassPath.classPath, replacedClassPath)])
+                    await useAddArchive(customSevenZip, buildFilePath, directory, [nodePath.join(otherDirectClassPath.classPath, replacedClassPath)])
 
                     for (const extraItem of extraItems) {
                       const replacedExtraClassPath = extraItem.classPath.replaceAll(otherDirectClassPath.replacement.source, otherDirectClassPath.replacement.target)
                       await useCopyFile(`${directory}/${extraItem.targetFilename}`, nodePath.join(directory, otherDirectClassPath.classPath, replacedExtraClassPath))
-                      await useAddArchive(customSevenZip, nodePath.resolve(buildFilePath), directory, [nodePath.join(otherDirectClassPath.classPath, replacedExtraClassPath)])
+                      await useAddArchive(customSevenZip, buildFilePath, directory, [nodePath.join(otherDirectClassPath.classPath, replacedExtraClassPath)])
                     }
                   }
                   break
                 }
                 case 'D': {
-                  await useDeleteArchive(customSevenZip, nodePath.resolve(buildFilePath), [nodePath.join(defaultDirectClassPath, replacedClassPath)])
-                  await useDeleteArchive(customSevenZip, nodePath.resolve(buildFilePath), [nodePath.join(defaultDirectClassPath, `${replacedClassPathFileInfo?.directory}${replacedClassPathFileInfo?.baseName}$*${replacedClassPathFileInfo?.extension}`)])
+                  await useDeleteArchive(customSevenZip, buildFilePath, [nodePath.join(defaultDirectClassPath, replacedClassPath)])
+                  await useDeleteArchive(customSevenZip, buildFilePath, [nodePath.join(defaultDirectClassPath, `${replacedClassPathFileInfo?.directory}${replacedClassPathFileInfo?.baseName}$*${replacedClassPathFileInfo?.extension}`)])
 
                   if (otherDirectClassPath.extensions.includes(replacedClassPathFileInfo?.extension || '')) {
-                    await useDeleteArchive(customSevenZip, nodePath.resolve(buildFilePath), [nodePath.join(otherDirectClassPath.classPath, replacedClassPath)])
-                    await useDeleteArchive(customSevenZip, nodePath.resolve(buildFilePath), [nodePath.join(otherDirectClassPath.classPath, `${replacedClassPathFileInfo?.directory}${replacedClassPathFileInfo?.baseName}$*${replacedClassPathFileInfo?.extension}`)])
+                    await useDeleteArchive(customSevenZip, buildFilePath, [nodePath.join(otherDirectClassPath.classPath, replacedClassPath)])
+                    await useDeleteArchive(customSevenZip, buildFilePath, [nodePath.join(otherDirectClassPath.classPath, `${replacedClassPathFileInfo?.directory}${replacedClassPathFileInfo?.baseName}$*${replacedClassPathFileInfo?.extension}`)])
                   }
                   break
                 }
