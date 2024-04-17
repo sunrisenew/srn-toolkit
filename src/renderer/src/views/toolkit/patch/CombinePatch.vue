@@ -750,12 +750,12 @@ const loadingSetting = ref(false)
 
 async function loadSetting() {
   loadingSetting.value = true
-  await useLoadSetting(MODULE_NAME).then(async (setting: SettingModel) => {
-    if (setting.version === appVersion.value) {
+  await useLoadSetting(MODULE_NAME).then(async (setting?: SettingModel) => {
+    if (setting?.version === appVersion.value) {
       settingModel.value = setting
     } else {
       settingModel.value = _defaultsDeep(setting, {
-        modules: Array.from(Array(setting.modules.length), buildDefaultModuleSetting)
+        modules: Array.from(Array(setting?.modules.length), buildDefaultModuleSetting)
       }, settingModel.value)
       settingModel.value.version = appVersion.value
     }
