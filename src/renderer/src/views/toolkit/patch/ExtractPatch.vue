@@ -336,7 +336,7 @@ type PatchItemMeta = PatchMeta['items'][0]
 </script>
 
 <script setup lang="ts">
-import { useCopyFile, useGetAppVersion, useGlobby, useLoadSetting, useOpenDirectoryDialog, useSaveSetting, useShowItemInFolder, useShowSettingFileInFolder, useWriteFile, useWriteJsonFile } from '@renderer/compositions/ipc-renderer'
+import { useCopyFile, useGetAppVersion, useGlobby, useLoadSetting, useNodePath, useOpenDirectoryDialog, useSaveSetting, useShowItemInFolder, useShowSettingFileInFolder, useWriteFile, useWriteJsonFile } from '@renderer/compositions/ipc-renderer'
 import { parseFileInfo, parsePathInfo } from '@renderer/utils/path'
 import { driver } from 'driver.js'
 import { defaultsDeep as _defaultsDeep } from 'lodash-es'
@@ -344,6 +344,7 @@ import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, N
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
+const nodePath = useNodePath()
 const appVersion = ref('')
 
 const MODULE_NAME = 'extract-patch'
@@ -407,7 +408,7 @@ function buildPatchDirectory(patch: PatchModel) {
     return ''
   }
 
-  return `${model.value.patchRootDirectory}/${patch.name}`
+  return nodePath.join(model.value.patchRootDirectory, patch.name)
 }
 
 async function handleOpenDirectory(model, key, onChange?: (model) => void) {
@@ -420,7 +421,7 @@ async function handleOpenDirectory(model, key, onChange?: (model) => void) {
 
 function handleScriptFilenameChange(patch: PatchModel, script: PatchScriptModel) {
   Object.assign(script, {
-    targetPath: `${buildPatchDirectory(patch)}/scripts/${script.filename}`,
+    targetPath: nodePath.join(buildPatchDirectory(patch), 'scripts', script.filename),
     status: 'info',
     message: '待处理'
   })
@@ -430,7 +431,7 @@ function handleParsePatchScripts(patch: PatchModel) {
   const { scripts } = patch
   for (const script of scripts) {
     Object.assign(script, {
-      targetPath: `${buildPatchDirectory(patch)}/scripts/${script.filename}`,
+      targetPath: nodePath.join(buildPatchDirectory(patch), 'scripts', script.filename),
       status: 'info',
       message: '待处理'
     })
@@ -494,7 +495,7 @@ async function parseItemText(itemText: string, patchDirectory: string): Promise<
   if (replacement) {
     const { extension: extensionReplacement, path: pathReplacement } = replacement
     replacedSourceRelativeItemPath = replacedSourceRelativeItemPath.replaceAll(extensionReplacement.source, extensionReplacement.target || extensionReplacement.source)
-    replacedSourceRelativeItemPath = replacedSourceRelativeItemPath.replaceAll(pathReplacement.source || '', pathReplacement.target || '')
+    replacedSourceRelativeItemPath = replacedSourceRelativeItemPath.replaceAll(pathReplacement.source, pathReplacement.target)
   }
 
   const replacedSourceFileInfo = parseFileInfo(replacedSourceRelativeItemPath)
@@ -509,20 +510,36 @@ async function parseItemText(itemText: string, patchDirectory: string): Promise<
   parsedItem.action = action || '?'
   parsedItem.originPath = originPath
   parsedItem.moduleName = moduleName
-  parsedItem.sourcePath = `${moduleRootDirectory}/${replacedSourceRelativeItemPath}`
-  parsedItem.targetPath = patchDirectory && `${patchDirectory}/${replacedSourceFilename}`
+  parsedItem.sourcePath = nodePath.join(moduleRootDirectory, replacedSourceRelativeItemPath)
+  parsedItem.targetPath = patchDirectory && nodePath.join(patchDirectory, replacedSourceFilename)
   parsedItem.targetFilename = replacedSourceFilename
   parsedItem.classPath = parsedItem.sourcePath.replace(/^.*\/target\/classes\//, '')
 
   const parsedSourcePathFileInfo = parseFileInfo(parsedItem.sourcePath)
-  const globSourcePathPattern = `${parsedSourcePathFileInfo?.directory}${parsedSourcePathFileInfo?.baseName}$*${parsedSourcePathFileInfo?.extension}`
+    if (!parsedSourcePathFileInfo) {
+    parsedItem.status = 'error'
+    parsedItem.message = `路径解析错误 | ${JSON.stringify({ itemText: itemText })}`
+    return parsedItem
+  }
+  const globSourcePathPattern = nodePath.join(parsedSourcePathFileInfo.directory, `${parsedSourcePathFileInfo.baseName}$*${parsedSourcePathFileInfo.extension}`)
   const globSourcePaths = (await useGlobby(globSourcePathPattern) as string[])
   parsedItem.extraItems = globSourcePaths.map(globSourcePath => {
     const parsedGlobSourcePathFileInfo = parseFileInfo(globSourcePath)
+    if (!parsedGlobSourcePathFileInfo) {
+      parsedItem.status = 'error'
+      parsedItem.message = `路径解析错误 | ${JSON.stringify({ itemText: itemText })}`
+      return {
+        sourcePath: '',
+        targetPath: '',
+        targetFilename: '',
+        classPath: ''
+      }
+    }
+
     return {
       sourcePath: globSourcePath,
-      targetPath: patchDirectory && `${patchDirectory}/${parsedGlobSourcePathFileInfo?.filename}`,
-      targetFilename: parsedGlobSourcePathFileInfo?.filename || '',
+      targetPath: patchDirectory && nodePath.join(patchDirectory, parsedGlobSourcePathFileInfo.filename),
+      targetFilename: parsedGlobSourcePathFileInfo.filename,
       classPath: globSourcePath.replace(/^.*\/target\/classes\//, '')
     }
   })
@@ -645,7 +662,7 @@ function handleExtractPatch(selectedPatch?: PatchModel) {
           itemTexts: successItems.map(value => value.text),
           items: successItems
         }
-        await useWriteJsonFile(`${selectedPatch.directory}/${metaFilename}`, patchMeta)
+        await useWriteJsonFile(nodePath.join(selectedPatch.directory, metaFilename), patchMeta)
       }
 
       processedPatchCount++
