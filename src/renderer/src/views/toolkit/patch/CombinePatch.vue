@@ -199,18 +199,24 @@
                       </n-form-item>
                       <n-collapse v-if="module.setting.directCombine" :default-expanded-names="['otherDirectClassPath']">
                         <n-collapse-item title="其它直接类路径" name="otherDirectClassPath">
-                          <n-form-item label="扩展名组" :path="`modules[${moduleIndex}].setting.otherDirectClassPath.extensions`">
-                            <n-select v-model:value="module.setting.otherDirectClassPath.extensions" :show-arrow="false" :show="false" placeholder="请选择" tag multiple filterable clearable></n-select>
-                          </n-form-item>
-                          <n-form-item label="类路径" :path="`modules[${moduleIndex}].setting.otherDirectClassPath.classPath`">
-                            <n-input v-model:value="module.setting.otherDirectClassPath.classPath" clearable></n-input>
-                          </n-form-item>
-                          <n-form-item label="原替换" :path="`modules[${moduleIndex}].setting.otherDirectClassPath.replacement.source`">
-                            <n-input v-model:value="module.setting.otherDirectClassPath.replacement.source" clearable></n-input>
-                          </n-form-item>
-                          <n-form-item label="目标替换" :path="`modules[${moduleIndex}].setting.otherDirectClassPath.replacement.target`">
-                            <n-input v-model:value="module.setting.otherDirectClassPath.replacement.target" clearable></n-input>
-                          </n-form-item>
+                          <n-dynamic-input v-model:value="module.setting.otherDirectClassPaths" :on-create="handleCreateModuleOtherDirectClassPathSetting">
+                            <template #default="{ value: otherDirectClassPath, index: otherDirectClassPathIndex }: { value: ModuleOtherDirectClassPathsSettingModel, index: number }">
+                              <n-card hoverable>
+                                <n-form-item label="扩展名组" :path="`modules[${moduleIndex}].setting.otherDirectClassPaths[${otherDirectClassPathIndex}].extensions`">
+                                  <n-select v-model:value="otherDirectClassPath.extensions" :show-arrow="false" :show="false" placeholder="请选择" tag multiple filterable clearable></n-select>
+                                </n-form-item>
+                                <n-form-item label="类路径" :path="`modules[${moduleIndex}].setting.otherDirectClassPaths[${otherDirectClassPathIndex}].classPath`">
+                                  <n-input v-model:value="otherDirectClassPath.classPath" clearable></n-input>
+                                </n-form-item>
+                                <n-form-item label="原替换" :path="`modules[${moduleIndex}].setting.otherDirectClassPaths[${otherDirectClassPathIndex}].replacement.source`">
+                                  <n-input v-model:value="otherDirectClassPath.replacement.source" clearable></n-input>
+                                </n-form-item>
+                                <n-form-item label="目标替换" :path="`modules[${moduleIndex}].setting.otherDirectClassPaths[${otherDirectClassPathIndex}].replacement.target`">
+                                  <n-input v-model:value="otherDirectClassPath.replacement.target" clearable></n-input>
+                                </n-form-item>
+                              </n-card>
+                            </template>
+                          </n-dynamic-input>
                         </n-collapse-item>
                       </n-collapse>
                     </n-collapse-item>
@@ -292,18 +298,19 @@ type SettingModel = {
       directCombine: boolean
       jarPackagePath: string
       defaultDirectClassPath: string
-      otherDirectClassPath: {
+      otherDirectClassPaths: Array<{
         extensions: Array<string>
         classPath: string
         replacement: {
           source: string
           target: string
         }
-      }
+      }>
     }
   }>
 }
 type ModuleSettingModel = SettingModel['modules'][0]
+type ModuleOtherDirectClassPathsSettingModel = SettingModel['modules'][0]['setting']['otherDirectClassPaths'][0]
 
 type FormattedSetting = {
   customSevenZip: string
@@ -555,7 +562,7 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
 
         const { action, moduleName, targetFilename, classPath, extraItems, targetBuildPackages, targetDirectCombineBuildPackages } = item
         const moduleSetting = moduleSettings[moduleName]
-        const { defaultDirectClassPath, otherDirectClassPath } = moduleSetting
+        const { defaultDirectClassPath, otherDirectClassPaths } = moduleSetting
         const classPathFileInfo = parseFileInfo(classPath)
         if (!classPathFileInfo) {
             item.status = 'error'
@@ -603,14 +610,6 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
         }
 
         if (targetDirectCombineBuildPackages.length !== 0) {
-          const replacedClassPath = classPath.replaceAll(otherDirectClassPath.replacement.source, otherDirectClassPath.replacement.target)
-          const replacedClassPathFileInfo = parseFileInfo(replacedClassPath)
-          if (!replacedClassPathFileInfo) {
-            item.status = 'error'
-            item.message = `路径解析错误 | ${JSON.stringify({ item, moduleSetting })}`
-            continue
-          }
-
           for (const targetDirectCombineBuildPackage of targetDirectCombineBuildPackages) {
             if (combinePatchInfo.value.canceled) {
               return
@@ -634,25 +633,45 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
                     await useAddArchive(customSevenZip, buildFilePath, directory, [nodePath.join(defaultDirectClassPath, extraItem.classPath)])
                   }
 
-                  if (otherDirectClassPath.extensions.includes(replacedClassPathFileInfo.extension)) {
-                    await useCopyFile(nodePath.join(directory, targetFilename), nodePath.join(directory, otherDirectClassPath.classPath, replacedClassPath))
-                    await useAddArchive(customSevenZip, buildFilePath, directory, [nodePath.join(otherDirectClassPath.classPath, replacedClassPath)])
+                  for (const otherDirectClassPath of otherDirectClassPaths) {
+                    const replacedClassPath = classPath.replaceAll(otherDirectClassPath.replacement.source, otherDirectClassPath.replacement.target)
+                    const replacedClassPathFileInfo = parseFileInfo(replacedClassPath)
+                    if (!replacedClassPathFileInfo) {
+                      item.status = 'error'
+                      item.message = `路径解析错误 | ${JSON.stringify({ item, moduleSetting })}`
+                      break
+                    }
 
-                    for (const extraItem of extraItems) {
-                      const replacedExtraClassPath = extraItem.classPath.replaceAll(otherDirectClassPath.replacement.source, otherDirectClassPath.replacement.target)
-                      await useCopyFile(nodePath.join(directory, extraItem.targetFilename), nodePath.join(directory, otherDirectClassPath.classPath, replacedExtraClassPath))
-                      await useAddArchive(customSevenZip, buildFilePath, directory, [nodePath.join(otherDirectClassPath.classPath, replacedExtraClassPath)])
+                    if (otherDirectClassPath.extensions.includes(replacedClassPathFileInfo.extension)) {
+                      await useCopyFile(nodePath.join(directory, targetFilename), nodePath.join(directory, otherDirectClassPath.classPath, replacedClassPath))
+                      await useAddArchive(customSevenZip, buildFilePath, directory, [nodePath.join(otherDirectClassPath.classPath, replacedClassPath)])
+
+                      for (const extraItem of extraItems) {
+                        const replacedExtraClassPath = extraItem.classPath.replaceAll(otherDirectClassPath.replacement.source, otherDirectClassPath.replacement.target)
+                        await useCopyFile(nodePath.join(directory, extraItem.targetFilename), nodePath.join(directory, otherDirectClassPath.classPath, replacedExtraClassPath))
+                        await useAddArchive(customSevenZip, buildFilePath, directory, [nodePath.join(otherDirectClassPath.classPath, replacedExtraClassPath)])
+                      }
                     }
                   }
                   break
                 }
                 case 'D': {
-                  await useDeleteArchive(customSevenZip, buildFilePath, [nodePath.join(defaultDirectClassPath, replacedClassPath)])
-                  await useDeleteArchive(customSevenZip, buildFilePath, [nodePath.join(defaultDirectClassPath, replacedClassPathFileInfo.directory, `${replacedClassPathFileInfo.baseName}$*${replacedClassPathFileInfo.extension}`)])
+                  await useDeleteArchive(customSevenZip, buildFilePath, [nodePath.join(defaultDirectClassPath, classPath)])
+                  await useDeleteArchive(customSevenZip, buildFilePath, [nodePath.join(defaultDirectClassPath, classPathFileInfo.directory, `${classPathFileInfo.baseName}$*${classPathFileInfo.extension}`)])
 
-                  if (otherDirectClassPath.extensions.includes(replacedClassPathFileInfo.extension)) {
-                    await useDeleteArchive(customSevenZip, buildFilePath, [nodePath.join(otherDirectClassPath.classPath, replacedClassPath)])
-                    await useDeleteArchive(customSevenZip, buildFilePath, [nodePath.join(otherDirectClassPath.classPath, replacedClassPathFileInfo.directory, `${replacedClassPathFileInfo.baseName}$*${replacedClassPathFileInfo.extension}`)])
+                  for (const otherDirectClassPath of otherDirectClassPaths) {
+                    const replacedClassPath = classPath.replaceAll(otherDirectClassPath.replacement.source, otherDirectClassPath.replacement.target)
+                    const replacedClassPathFileInfo = parseFileInfo(replacedClassPath)
+                    if (!replacedClassPathFileInfo) {
+                      item.status = 'error'
+                      item.message = `路径解析错误 | ${JSON.stringify({ item, moduleSetting })}`
+                      break
+                    }
+
+                    if (otherDirectClassPath.extensions.includes(replacedClassPathFileInfo.extension)) {
+                      await useDeleteArchive(customSevenZip, buildFilePath, [nodePath.join(otherDirectClassPath.classPath, replacedClassPath)])
+                      await useDeleteArchive(customSevenZip, buildFilePath, [nodePath.join(otherDirectClassPath.classPath, replacedClassPathFileInfo.directory, `${replacedClassPathFileInfo.baseName}$*${replacedClassPathFileInfo.extension}`)])
+                    }
                   }
                   break
                 }
@@ -725,20 +744,28 @@ function buildDefaultModuleSetting(): ModuleSettingModel {
       directCombine: false,
       jarPackagePath: '',
       defaultDirectClassPath: 'WEB-INF/classes',
-      otherDirectClassPath: {
-        extensions: ['.js', '.html', '.css'],
-        classPath: '.',
-        replacement: {
-          source: 'META-INF/resources',
-          target: ''
-        }
-      }
+      otherDirectClassPaths: [buildDefaultModuleOtherDirectClassPathSetting()]
+    }
+  }
+}
+
+function buildDefaultModuleOtherDirectClassPathSetting() {
+  return {
+    extensions: ['.js', '.html', '.css'],
+    classPath: '.',
+    replacement: {
+      source: 'META-INF/resources',
+      target: ''
     }
   }
 }
 
 function handleCreateModuleSetting() {
   return buildDefaultModuleSetting()
+}
+
+function handleCreateModuleOtherDirectClassPathSetting() {
+  return buildDefaultModuleOtherDirectClassPathSetting()
 }
 
 const showSetting = ref(false)

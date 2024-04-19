@@ -199,13 +199,13 @@
                           <n-dynamic-input v-model:value="module.setting.replacements" :min="1" :on-create="handleCreateModuleReplacementSetting">
                             <template #default="{ value: replacement, index: replacementIndex }: { value: ModuleReplacementSettingModel, index: number }">
                               <n-card hoverable>
-                                <n-form-item label="原扩展名" :path="`modules[${moduleIndex}].setting.replacements[${replacementIndex}].extension.source`" :rule="{ required: true, message: '原扩展名不能为空' }">
-                                  <n-input v-model:value="replacement.extension.source" clearable></n-input>
+                                <n-form-item label="原扩展名组" :path="`modules[${moduleIndex}].setting.replacements[${replacementIndex}].extension.sources`" :rule="{ required: true, message: '原扩展名组不能为空' }">
+                                  <n-select v-model:value="replacement.extension.sources" :show-arrow="false" :show="false" placeholder="请选择" tag multiple filterable clearable></n-select>
                                 </n-form-item>
-                                <n-form-item label="目标扩展名">
-                                  <n-input v-model:value="replacement.extension.target" clearable></n-input>
+                                <n-form-item label="目标扩展名组" :path="`modules[${moduleIndex}].setting.replacements[${replacementIndex}].extension.targets`">
+                                  <n-select v-model:value="replacement.extension.targets" :show-arrow="false" :show="false" placeholder="请选择" tag multiple filterable clearable></n-select>
                                 </n-form-item>
-                                <n-form-item label="原路径" :path="`modules[${moduleIndex}].setting.replacements[${replacementIndex}].path.source`" :rule="{ required: !!replacement.path.target, message: '原扩展名不能为空' }">
+                                <n-form-item label="原路径" :path="`modules[${moduleIndex}].setting.replacements[${replacementIndex}].path.source`" :rule="{ required: !!replacement.path.target, message: '原路径不能为空' }">
                                   <n-input v-model:value="replacement.path.source" clearable></n-input>
                                 </n-form-item>
                                 <n-form-item label="目标路径">
@@ -298,8 +298,8 @@ type SettingModel = {
       replacements: Array<{
         fromSource: boolean
         extension: {
-          source: string
-          target: string
+          sources: Array<string>
+          targets: Array<string>
         },
         path: {
           source: string
@@ -317,11 +317,7 @@ type ModuleReplacementPathSettingModel = SettingModel['modules'][0]['setting']['
 type FormattedSetting = {
   defaultPatchRootDirectory: string
   modules: {
-    [key: string]: ModuleSettingModel['setting'] & {
-      replacements: {
-        [key: string]: ModuleReplacementSettingModel
-      }
-    }
+    [key: string]: ModuleSettingModel['setting']
   }
 }
 
@@ -351,7 +347,7 @@ import { useCopyFile, useGetAppVersion, useGlobby, useLoadSetting, useNodePath, 
 import { parseFileInfo, parsePathInfo } from '@renderer/utils/path'
 import { driver } from 'driver.js'
 import { defaultsDeep as _defaultsDeep } from 'lodash-es'
-import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSpace, NSpin, NTag, NText, NThing } from 'naive-ui'
+import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSelect, NSpace, NSpin, NTag, NText, NThing } from 'naive-ui'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -368,7 +364,7 @@ onMounted(async () => {
 
   await loadSetting()
 
-  model.value.patchRootDirectory = settingModel.value.defaultPatchRootDirectory || ''
+  model.value.patchRootDirectory = settingModel.value.defaultPatchRootDirectory || model.value.patchRootDirectory
 })
 
 const model = ref<Model>({
@@ -502,10 +498,15 @@ async function parseItemText(itemText: string, patchDirectory: string): Promise<
 
   const { rootDirectory: moduleRootDirectory, replacements } = moduleSetting
 
-  const replacement = replacements[extension]
-  if (replacement) {
+  for (const replacement of replacements) {
     const { extension: extensionReplacement, path: pathReplacement } = replacement
-    replacedSourceRelativeItemPath = replacedSourceRelativeItemPath.replaceAll(extensionReplacement.source, extensionReplacement.target || extensionReplacement.source)
+    for (let i = 0; i < extensionReplacement.sources.length; i++) {
+      const extensionReplacementSource = extensionReplacement.sources[i]
+      const extensionReplacementTarget = extensionReplacement.targets[i] || extensionReplacementSource
+      if (extensionReplacementSource === extension) {
+        replacedSourceRelativeItemPath = replacedSourceRelativeItemPath.replaceAll(extensionReplacementSource, extensionReplacementTarget)
+      }
+    }
     replacedSourceRelativeItemPath = replacedSourceRelativeItemPath.replaceAll(pathReplacement.source, pathReplacement.target)
   }
 
@@ -698,14 +699,7 @@ const formattedSetting = computed<FormattedSetting>(() => {
   const settingCopy: SettingModel = JSON.parse(JSON.stringify(settingModel.value))
 
   const modules = settingCopy.modules.reduce((modulesResult, module) => {
-    const replacements = module.setting.replacements.reduce((replacementsResult, replacement) => {
-      replacementsResult[replacement.extension.source] = replacement
-      return replacementsResult
-    }, {})
-    modulesResult[module.name] = {
-      ...module.setting,
-      replacements
-    }
+    modulesResult[module.name] = module.setting
     return modulesResult
   }, {})
 
@@ -721,26 +715,18 @@ function buildDefaultModuleSetting(): ModuleSettingModel {
     setting: {
       rootDirectory: '',
       replacements: [
-        buildDefaultModuleReplacementSetting('.java', false, {
-          source: '.java',
-          target: '.class'
+        buildDefaultModuleReplacementSetting(['.java'], false, {
+          sources: ['.java'],
+          targets: ['.class']
         }, {
           source: 'src/main/java',
           target: 'target/classes'
         }),
-        buildDefaultModuleReplacementSetting('.xml', true, undefined, {
+        buildDefaultModuleReplacementSetting(['.xml'], true, undefined, {
           source: 'src/main/resources',
           target: 'target/classes'
         }),
-        buildDefaultModuleReplacementSetting('.js', true, undefined, {
-          source: 'src/main/webapp',
-          target: 'target/classes/META-INF/resources'
-        }),
-        buildDefaultModuleReplacementSetting('.html', true, undefined, {
-          source: 'src/main/webapp',
-          target: 'target/classes/META-INF/resources'
-        }),
-        buildDefaultModuleReplacementSetting('.css', true, undefined, {
+        buildDefaultModuleReplacementSetting(['.js', '.html', '.css'], true, undefined, {
           source: 'src/main/webapp',
           target: 'target/classes/META-INF/resources'
         })
@@ -749,12 +735,12 @@ function buildDefaultModuleSetting(): ModuleSettingModel {
   }
 }
 
-function buildDefaultModuleReplacementSetting(sourceExtension: string, fromSource = false, defaultExtension?: ModuleReplacementExtensionSettingModel, defaultPath?: ModuleReplacementPathSettingModel): ModuleReplacementSettingModel {
+function buildDefaultModuleReplacementSetting(sourceExtensions: Array<string>, fromSource = false, defaultExtension?: ModuleReplacementExtensionSettingModel, defaultPath?: ModuleReplacementPathSettingModel): ModuleReplacementSettingModel {
   return {
     fromSource,
     extension: defaultExtension ?? {
-      source: sourceExtension,
-      target: sourceExtension
+      sources: sourceExtensions,
+      targets: sourceExtensions
     },
     path: defaultPath ?? {
       source: '',
@@ -768,7 +754,7 @@ function handleCreateModuleSetting() {
 }
 
 function handleCreateModuleReplacementSetting() {
-  return buildDefaultModuleReplacementSetting('')
+  return buildDefaultModuleReplacementSetting([])
 }
 
 const showSetting = ref(false)
