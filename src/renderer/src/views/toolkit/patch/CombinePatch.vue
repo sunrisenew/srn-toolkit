@@ -286,7 +286,7 @@ type Model = {
 }
 type BuildPackageModel = Model['buildPackages']['0']
 type PatchModel = Model['patches'][0]
-type PatchItemModel = Model['patches'][0]['items'][0]
+type PatchItemModel = PatchModel['items'][0]
 
 type SettingModel = {
   version: string
@@ -310,13 +310,14 @@ type SettingModel = {
   }>
 }
 type ModuleSettingModel = SettingModel['modules'][0]
-type ModuleOtherDirectClassPathsSettingModel = SettingModel['modules'][0]['setting']['otherDirectClassPaths'][0]
+type ModuleSettingValueModel = ModuleSettingModel['setting']
+type ModuleOtherDirectClassPathsSettingModel = ModuleSettingValueModel['otherDirectClassPaths'][0]
 
 type FormattedSetting = {
   customSevenZip: string
   tempUnzipDirectory: string
   modules: {
-    [key: string]: ModuleSettingModel['setting']
+    [key: string]: ModuleSettingValueModel
   }
 }
 

@@ -285,8 +285,8 @@ type Model = {
   }>
 }
 type PatchModel = Model['patches'][0]
-type PatchScriptModel = Model['patches'][0]['scripts'][0]
-type PatchItemModel = Model['patches'][0]['itemsInfo']['items'][0]
+type PatchScriptModel = PatchModel['scripts'][0]
+type PatchItemModel = PatchModel['itemsInfo']['items'][0]
 
 type SettingModel = {
   version: string
@@ -310,14 +310,15 @@ type SettingModel = {
   }>
 }
 type ModuleSettingModel = SettingModel['modules'][0]
-type ModuleReplacementSettingModel = SettingModel['modules'][0]['setting']['replacements'][0]
-type ModuleReplacementExtensionSettingModel = SettingModel['modules'][0]['setting']['replacements'][0]['extension']
-type ModuleReplacementPathSettingModel = SettingModel['modules'][0]['setting']['replacements'][0]['path']
+type ModuleSettingValueModel = ModuleSettingModel['setting']
+type ModuleReplacementSettingModel = ModuleSettingValueModel['replacements'][0]
+type ModuleReplacementExtensionSettingModel = ModuleReplacementSettingModel['extension']
+type ModuleReplacementPathSettingModel = ModuleReplacementSettingModel['path']
 
 type FormattedSetting = {
   defaultPatchRootDirectory: string
   modules: {
-    [key: string]: ModuleSettingModel['setting']
+    [key: string]: ModuleSettingValueModel
   }
 }
 
