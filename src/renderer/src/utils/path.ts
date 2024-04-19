@@ -1,5 +1,5 @@
 export function parsePathInfo(pathText: string) {
-  const matches = pathText.match(/^((\S+?)\s+)?(\/?(.+?)\/((.+\/)((.+?)(\.\w+)?)))$/)
+  const matches = pathText.match(/^((\S+?)\s+)?([/\\]?(.+?)[/\\]((.+[/\\])((.+?)(\.\w+)?)))$/)
   if (!matches) {
     return undefined
   }
@@ -27,7 +27,7 @@ export function parsePathInfo(pathText: string) {
 }
 
 export function parseFileInfo(filePath: string) {
-  const matches = filePath.match(/^(.+\/)?((.+?)(\.\w+)?)$/)
+  const matches = filePath.match(/^(.+[/\\])?((.+?)(\.\w+)?)$/)
 
   if (!matches) {
     return undefined
