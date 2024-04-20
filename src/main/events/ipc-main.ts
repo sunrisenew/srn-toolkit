@@ -241,9 +241,9 @@ function registerWriteFile() {
 function registerGlobby() {
   ipcMain.handle('file:globby', async (event, patterns: string | readonly string[], options?: Options) => {
     if (patterns instanceof Array) {
-      patterns = patterns.map(pattern => path.resolve(pattern))
+      patterns = patterns.map(pattern => path.resolve(pattern).replaceAll(/\\/g, '/'))
     } else {
-      patterns = path.resolve(patterns)
+      patterns = path.resolve(patterns).replaceAll(/\\/g, '/')
     }
 
     return globby(patterns, options).catch(error => Promise.reject(new Error(`文件查找错误 | ${patterns}`, { cause: error })))
