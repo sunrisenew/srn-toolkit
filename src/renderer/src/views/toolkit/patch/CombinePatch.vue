@@ -75,73 +75,75 @@
                 </n-grid-item>
               </n-grid>
               <n-divider></n-divider>
-              <n-thing class="output" title="输出">
-                <template #header-extra>
-                  <n-space>
-                    <n-badge type="success" :value="patch.result.successCount" show-zero></n-badge>
-                    <n-badge type="warning" :value="patch.result.warningCount" show-zero></n-badge>
-                    <n-badge type="error" :value="patch.result.errorCount" show-zero></n-badge>
-                  </n-space>
-                </template>
-                <n-collapse>
-                  <n-collapse-item v-if="patch.items.length === 0" title="条目" disabled></n-collapse-item>
-                  <n-collapse-item v-for="(item, itemIndex) in patch.items" :key="itemIndex">
-                    <template #header>
-                      <span>条目</span>
-                      <n-divider vertical></n-divider>
-                      <n-text :type="item.status">{{ item.action }}</n-text>
-                      <n-divider vertical></n-divider>
-                      <n-text :type="item.status">{{ item.originPath }}</n-text>
-                    </template>
-                    <template #header-extra>
-                      <n-badge :type="item.status" dot></n-badge>
-                    </template>
-                    <n-grid :y-gap="10">
-                      <n-grid-item :span="2">模块名称</n-grid-item>
-                      <n-grid-item :span="22">{{ item.moduleName }}</n-grid-item>
-                      <n-grid-item :span="2">类路径</n-grid-item>
-                      <n-grid-item :span="22">
-                        <n-text type="info">{{ item.classPath }}</n-text>
-                      </n-grid-item>
-                      <n-grid-item :span="2">文件路径</n-grid-item>
-                      <n-grid-item :span="22">
-                        <n-text class="clickable" type="info" underline @click="handleShowItemInFolder(item.filePath)">{{ item.filePath }}</n-text>
-                      </n-grid-item>
-                      <template v-if="item.extraItems.length !== 0">
-                        <n-grid-item :span="2">额外条目</n-grid-item>
-                        <n-grid-item :span="22">
-                          <n-grid v-for="(extraItem, extraItemIndex) in item.extraItems" :key="extraItemIndex" :y-gap="10">
-                            <n-grid-item :span="2">文件路径</n-grid-item>
-                            <n-grid-item :span="22">
-                              <n-text class="clickable" type="info" underline @click="handleShowItemInFolder(extraItem.filePath)">{{ extraItem.filePath }}</n-text>
-                            </n-grid-item>
-                            <n-grid-item :span="2">类路径</n-grid-item>
-                            <n-grid-item :span="22">
-                              <n-text type="info">{{ extraItem.classPath }}</n-text>
-                            </n-grid-item>
-                          </n-grid>
-                        </n-grid-item>
+              <n-collapse>
+                <n-collapse-item class="output" title="输出">
+                  <template #header-extra>
+                    <n-space>
+                      <n-badge type="success" :value="patch.result.successCount" show-zero></n-badge>
+                      <n-badge type="warning" :value="patch.result.warningCount" show-zero></n-badge>
+                      <n-badge type="error" :value="patch.result.errorCount" show-zero></n-badge>
+                    </n-space>
+                  </template>
+                  <n-collapse>
+                    <n-collapse-item v-if="patch.items.length === 0" title="条目" disabled></n-collapse-item>
+                    <n-collapse-item v-for="(item, itemIndex) in patch.items" :key="itemIndex">
+                      <template #header>
+                        <span>条目</span>
+                        <n-divider vertical></n-divider>
+                        <n-text :type="item.status">{{ item.action }}</n-text>
+                        <n-divider vertical></n-divider>
+                        <n-text :type="item.status">{{ item.originPath }}</n-text>
                       </template>
-                      <n-grid-item :span="2">目标构建包文件路径</n-grid-item>
-                      <n-grid-item :span="22">
-                        <div v-for="(targetBuildPackage, targetBuildPackageIndex) in item.targetBuildPackages" :key="targetBuildPackageIndex">
-                          <n-text class="clickable" type="info" underline @click="handleShowItemInFolder(targetBuildPackage.filePath)">{{ targetBuildPackage.filePath }}</n-text>
-                        </div>
-                      </n-grid-item>
-                      <n-grid-item :span="2">目标直接合并构建包文件路径</n-grid-item>
-                      <n-grid-item :span="22">
-                        <div v-for="(targetDirectCombineBuildPackage, targetDirectCombineBuildPackageIndex) in item.targetDirectCombineBuildPackages" :key="targetDirectCombineBuildPackageIndex">
-                          <n-text class="clickable" type="info" underline @click="handleShowItemInFolder(targetDirectCombineBuildPackage.filePath)">{{ targetDirectCombineBuildPackage.filePath }}</n-text>
-                        </div>
-                      </n-grid-item>
-                      <n-grid-item :span="2">信息</n-grid-item>
-                      <n-grid-item :span="22">
-                        <n-text :type="item.status">{{ item.message }}</n-text>
-                      </n-grid-item>
-                    </n-grid>
-                  </n-collapse-item>
-                </n-collapse>
-              </n-thing>
+                      <template #header-extra>
+                        <n-badge :type="item.status" dot></n-badge>
+                      </template>
+                      <n-grid :y-gap="10">
+                        <n-grid-item :span="2">模块名称</n-grid-item>
+                        <n-grid-item :span="22">{{ item.moduleName }}</n-grid-item>
+                        <n-grid-item :span="2">类路径</n-grid-item>
+                        <n-grid-item :span="22">
+                          <n-text type="info">{{ item.classPath }}</n-text>
+                        </n-grid-item>
+                        <n-grid-item :span="2">文件路径</n-grid-item>
+                        <n-grid-item :span="22">
+                          <n-text class="clickable" type="info" underline @click="handleShowItemInFolder(item.filePath)">{{ item.filePath }}</n-text>
+                        </n-grid-item>
+                        <template v-if="item.extraItems.length !== 0">
+                          <n-grid-item :span="2">额外条目</n-grid-item>
+                          <n-grid-item :span="22">
+                            <n-grid v-for="(extraItem, extraItemIndex) in item.extraItems" :key="extraItemIndex" :y-gap="10">
+                              <n-grid-item :span="2">文件路径</n-grid-item>
+                              <n-grid-item :span="22">
+                                <n-text class="clickable" type="info" underline @click="handleShowItemInFolder(extraItem.filePath)">{{ extraItem.filePath }}</n-text>
+                              </n-grid-item>
+                              <n-grid-item :span="2">类路径</n-grid-item>
+                              <n-grid-item :span="22">
+                                <n-text type="info">{{ extraItem.classPath }}</n-text>
+                              </n-grid-item>
+                            </n-grid>
+                          </n-grid-item>
+                        </template>
+                        <n-grid-item :span="2">目标构建包文件路径</n-grid-item>
+                        <n-grid-item :span="22">
+                          <div v-for="(targetBuildPackage, targetBuildPackageIndex) in item.targetBuildPackages" :key="targetBuildPackageIndex">
+                            <n-text class="clickable" type="info" underline @click="handleShowItemInFolder(targetBuildPackage.filePath)">{{ targetBuildPackage.filePath }}</n-text>
+                          </div>
+                        </n-grid-item>
+                        <n-grid-item :span="2">目标直接合并构建包文件路径</n-grid-item>
+                        <n-grid-item :span="22">
+                          <div v-for="(targetDirectCombineBuildPackage, targetDirectCombineBuildPackageIndex) in item.targetDirectCombineBuildPackages" :key="targetDirectCombineBuildPackageIndex">
+                            <n-text class="clickable" type="info" underline @click="handleShowItemInFolder(targetDirectCombineBuildPackage.filePath)">{{ targetDirectCombineBuildPackage.filePath }}</n-text>
+                          </div>
+                        </n-grid-item>
+                        <n-grid-item :span="2">信息</n-grid-item>
+                        <n-grid-item :span="22">
+                          <n-text :type="item.status">{{ item.message }}</n-text>
+                        </n-grid-item>
+                      </n-grid>
+                    </n-collapse-item>
+                  </n-collapse>
+                </n-collapse-item>
+              </n-collapse>
             </n-card>
           </template>
         </n-dynamic-input>
@@ -328,7 +330,7 @@ import { useAddArchive, useCopyFile, useDeleteArchive, useDeleteDirectory, useEx
 import { parseFileInfo } from '@renderer/utils/path'
 import { driver } from 'driver.js'
 import { defaultsDeep as _defaultsDeep } from 'lodash-es'
-import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSelect, NSpace, NSpin, NSwitch, NTag, NText, NThing } from 'naive-ui'
+import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSelect, NSpace, NSpin, NSwitch, NTag, NText } from 'naive-ui'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 

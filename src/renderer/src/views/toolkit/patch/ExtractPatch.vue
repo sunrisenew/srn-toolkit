@@ -68,7 +68,7 @@
               </n-form-item>
               <n-divider></n-divider>
               <n-collapse>
-                <n-thing class="output" title="输出">
+                <n-collapse-item class="output" title="输出">
                   <template #header-extra>
                     <n-space>
                       <n-badge type="success" :value="patch.result.successCount" show-zero></n-badge>
@@ -148,7 +148,7 @@
                       </n-grid>
                     </n-collapse-item>
                   </n-collapse>
-                </n-thing>
+                </n-collapse-item>
               </n-collapse>
             </n-card>
           </template>
@@ -348,7 +348,7 @@ import { useCopyFile, useGetAppVersion, useGlobby, useLoadSetting, useNodePath, 
 import { parseFileInfo, parsePathInfo } from '@renderer/utils/path'
 import { driver } from 'driver.js'
 import { defaultsDeep as _defaultsDeep } from 'lodash-es'
-import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSelect, NSpace, NSpin, NTag, NText, NThing } from 'naive-ui'
+import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSelect, NSpace, NSpin, NTag, NText } from 'naive-ui'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
