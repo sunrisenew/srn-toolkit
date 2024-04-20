@@ -1,28 +1,24 @@
 # srn-toolkit
 
-An Electron application with Vue and TypesSript
-
-## Recommended IDE Setup
-
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+Toolkit for Development.
 
 ## Project Setup
 
 ### Install
 
-```bash
-$ npm install
+``` sh
+npm i
 ```
 
 ### Development
 
-```bash
-$ npm run dev
+``` sh
+npm start
 ```
 
 ### Build
 
-```bash
+``` sh
 # For windows
 $ npm run build:win
 
