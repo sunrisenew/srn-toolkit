@@ -51,7 +51,7 @@ export default createRouter({
           {
             path: 'extract-patch',
             name: 'extract-patch',
-            component: () => import('@renderer/views/toolkit/patch/ExtractPatch.vue'),
+            component: () => import('@renderer/views/toolkit/patches/ExtractPatch.vue'),
             meta: {
               title: '抽取增量包',
               icon: new URL('@sicons/ionicons5/Folder.svg', import.meta.url).href
@@ -60,7 +60,7 @@ export default createRouter({
           {
             path: 'combine-patch',
             name: 'combine-patch',
-            component: () => import('@renderer/views/toolkit/patch/CombinePatch.vue'),
+            component: () => import('@renderer/views/toolkit/patches/CombinePatch.vue'),
             meta: {
               title: '合并增量包',
               icon: new URL('@sicons/ionicons5/FolderOpen.svg', import.meta.url).href
