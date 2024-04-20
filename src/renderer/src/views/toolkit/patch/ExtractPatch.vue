@@ -526,7 +526,7 @@ async function parseItemText(itemText: string, patchDirectory: string): Promise<
   parsedItem.sourcePath = nodePath.join(moduleRootDirectory, replacedSourceRelativeItemPath)
   parsedItem.targetPath = patchDirectory && nodePath.join(patchDirectory, replacedSourceFilename)
   parsedItem.targetFilename = replacedSourceFilename
-  parsedItem.classPath = parsedItem.sourcePath.replace(/^.*\/target\/classes\//, '')
+  parsedItem.classPath = parsedItem.sourcePath.replace(/^.*[/\\]target[/\\]classes[/\\]/, '').replaceAll(/\\/g, '/')
 
   const parsedSourcePathFileInfo = parseFileInfo(parsedItem.sourcePath)
     if (!parsedSourcePathFileInfo) {
@@ -553,7 +553,7 @@ async function parseItemText(itemText: string, patchDirectory: string): Promise<
       sourcePath: globSourcePath,
       targetPath: patchDirectory && nodePath.join(patchDirectory, parsedGlobSourcePathFileInfo.filename),
       targetFilename: parsedGlobSourcePathFileInfo.filename,
-      classPath: globSourcePath.replace(/^.*\/target\/classes\//, '')
+      classPath: globSourcePath.replace(/^.*[/\\]target[/\\]classes[/\\]/, '').replaceAll(/\\/g, '/')
     }
   })
 
