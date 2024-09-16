@@ -58,6 +58,7 @@ export function registerIpcMainEvents() {
   registerShowItemInFolder()
   registerCopyFile()
   registerReadJsonFile()
+  registerReadFile()
   registerWriteFile()
   registerGlobby()
   registerDeleteDirectory()
@@ -225,6 +226,20 @@ function registerReadJsonFile() {
 
       return undefined
     }).catch(error => Promise.reject(new Error(`文件读取错误 | ${filePath}`, { cause: error })))
+  })
+}
+
+function registerReadFile() {
+  ipcMain.handle('file:readFile', async (event, filePath: string) => {
+    filePath = path.resolve(filePath)
+
+    try {
+      await access(filePath)
+    } catch (error) {
+      return Promise.reject(new Error(`文件访问错误 | ${filePath}`))
+    }
+
+    return readFile(filePath, 'utf-8').catch(error => Promise.reject(new Error(`文件读取错误 | ${filePath}`, { cause: error })))
   })
 }
 

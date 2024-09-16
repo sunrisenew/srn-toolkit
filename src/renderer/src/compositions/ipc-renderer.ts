@@ -60,6 +60,10 @@ export function useReadJsonFile(filePath: string) {
   return window.electron.ipcRenderer.invoke('file:readJsonFile', filePath)
 }
 
+export function useReadFile(filePath: string) {
+  return window.electron.ipcRenderer.invoke('file:readFile', filePath)
+}
+
 export function useWriteFile(filePath: string, content: string) {
   return window.electron.ipcRenderer.invoke('file:writeFile', filePath, content)
 }

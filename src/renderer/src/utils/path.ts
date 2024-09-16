@@ -22,7 +22,7 @@ export function parsePathInfo(pathText: string) {
     directory,
     filename,
     baseName,
-    extension
+    extension: extension.toLowerCase()
   }
 }
 
@@ -39,6 +39,6 @@ export function parseFileInfo(filePath: string) {
     directory,
     filename,
     baseName,
-    extension
+    extension: extension.toLowerCase()
   }
 }

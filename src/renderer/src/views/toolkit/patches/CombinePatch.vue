@@ -63,7 +63,7 @@
               <n-form-item class="meta-file-path" label="元数据文件路径" :path="`patches[${patchIndex}].metaFilePath`" :rule="{ required: true, message: '元数据文件路径不能为空' }">
                 <n-input-group>
                   <n-input v-model:value="patch.metaFilePath" placeholder="请选择" readonly></n-input>
-                  <n-button type="info" ghost @click="handleOpenFile(patch, 'metaFilePath', [{ name: 'Meta File', extensions: ['json'] }], handleMetaFilePathChange)">选择</n-button>
+                  <n-button type="info" ghost @click="handleOpenFile(patch, 'metaFilePath', [{ name: 'Meta File', extensions: ['json', 'txt'] }], handleMetaFilePathChange)">选择</n-button>
                 </n-input-group>
               </n-form-item>
               <n-grid :y-gap="10">
@@ -221,6 +221,28 @@
                           </n-dynamic-input>
                         </n-collapse-item>
                       </n-collapse>
+                      <n-collapse>
+                        <n-collapse-item title="替换">
+                          <n-dynamic-input v-model:value="module.setting.replacements" :min="1" :on-create="handleCreateModuleReplacementSetting">
+                            <template #default="{ value: replacement, index: replacementIndex }: { value: ModuleReplacementSettingModel, index: number }">
+                              <n-card hoverable>
+                                <n-form-item label="原扩展名组" :path="`modules[${moduleIndex}].setting.replacements[${replacementIndex}].extension.sources`" :rule="{ required: true, message: '原扩展名组不能为空' }">
+                                  <n-select v-model:value="replacement.extension.sources" :show-arrow="false" :show="false" placeholder="请选择" tag multiple filterable clearable></n-select>
+                                </n-form-item>
+                                <n-form-item label="目标扩展名组" :path="`modules[${moduleIndex}].setting.replacements[${replacementIndex}].extension.targets`">
+                                  <n-select v-model:value="replacement.extension.targets" :show-arrow="false" :show="false" placeholder="请选择" tag multiple filterable clearable></n-select>
+                                </n-form-item>
+                                <n-form-item label="原路径" :path="`modules[${moduleIndex}].setting.replacements[${replacementIndex}].path.source`" :rule="{ required: !!replacement.path.target, message: '原路径不能为空' }">
+                                  <n-input v-model:value="replacement.path.source" clearable></n-input>
+                                </n-form-item>
+                                <n-form-item label="目标路径">
+                                  <n-input v-model:value="replacement.path.target" clearable></n-input>
+                                </n-form-item>
+                              </n-card>
+                            </template>
+                          </n-dynamic-input>
+                        </n-collapse-item>
+                      </n-collapse>
                     </n-collapse-item>
                   </n-collapse>
                 </n-card>
@@ -307,6 +329,17 @@ type SettingModel = {
           source: string
           target: string
         }
+      }>,
+      replacements: Array<{
+        fromSource: boolean
+        extension: {
+          sources: Array<string>
+          targets: Array<string>
+        },
+        path: {
+          source: string
+          target: string
+        }
       }>
     }
   }>
@@ -314,6 +347,9 @@ type SettingModel = {
 type ModuleSettingModel = SettingModel['modules'][0]
 type ModuleSettingValueModel = ModuleSettingModel['setting']
 type ModuleOtherDirectClassPathsSettingModel = ModuleSettingValueModel['otherDirectClassPaths'][0]
+type ModuleReplacementSettingModel = ModuleSettingValueModel['replacements'][0]
+type ModuleReplacementExtensionSettingModel = ModuleReplacementSettingModel['extension']
+type ModuleReplacementPathSettingModel = ModuleReplacementSettingModel['path']
 
 type FormattedSetting = {
   customSevenZip: string
@@ -326,13 +362,14 @@ type FormattedSetting = {
 </script>
 
 <script setup lang="ts">
-import { useAddArchive, useCopyFile, useDeleteArchive, useDeleteDirectory, useExtractFullArchive, useGetAppVersion, useGetModuleTempPath, useLoadSetting, useNodePath, useOpenDirectoryDialog, useOpenFileDialog, useReadJsonFile, useSaveSetting, useShowItemInFolder, useShowSettingFileInFolder, useTestArchive } from '@renderer/compositions/ipc-renderer'
+import { useAddArchive, useCopyFile, useDeleteArchive, useDeleteDirectory, useExtractFullArchive, useGetAppVersion, useGetModuleTempPath, useGlobby, useLoadSetting, useNodePath, useOpenDirectoryDialog, useOpenFileDialog, useReadFile, useReadJsonFile, useSaveSetting, useShowItemInFolder, useShowSettingFileInFolder, useTestArchive } from '@renderer/compositions/ipc-renderer'
 import { parseFileInfo } from '@renderer/utils/path'
 import { driver } from 'driver.js'
 import { defaultsDeep as _defaultsDeep } from 'lodash-es'
 import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSelect, NSpace, NSpin, NSwitch, NTag, NText } from 'naive-ui'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { parseItemsText } from './patch'
 
 const nodePath = useNodePath()
 const appVersion = ref('')
@@ -424,7 +461,20 @@ function handleReParsePatch(selectedPatch?: PatchModel) {
 
 async function parsePatch(patch: PatchModel) {
   if (patch.metaFilePath) {
-    const meta = await useReadJsonFile(patch.metaFilePath)
+    const metaFileExtension = nodePath.extname(patch.metaFilePath).toLowerCase()
+    const meta = {
+      name: '',
+      items: [],
+      relatedModuleNames: []
+    }
+    if (metaFileExtension === '.json') {
+      const jsonMeta = await useReadJsonFile(patch.metaFilePath)
+      Object.assign(meta, jsonMeta)
+    }
+    if (metaFileExtension === '.txt') {
+      const textMeta = await transformTextMetaFile(patch)
+      Object.assign(meta, textMeta)
+    }
     patch.name = meta.name
     patch.directory = nodePath.dirname(patch.metaFilePath)
     const relatedModuleNames = new Set<string>()
@@ -451,8 +501,72 @@ async function parsePatch(patch: PatchModel) {
     })
     patch.items = meta.items
     patch.relatedModuleNames = meta.relatedModuleNames || [...relatedModuleNames]
+
+    patch.result.warningCount = 0
+    patch.result.errorCount = 0
+    patch.items.forEach(patchItem => {
+      if (patchItem.status === 'warning') {
+        patch.result.warningCount++
+      }
+      if (patchItem.status === 'error') {
+        patch.result.errorCount++
+      }
+    })
   } else {
     Object.assign(patch, buildDefaultPatch())
+  }
+}
+
+async function transformTextMetaFile(patch: PatchModel) {
+  const itemsText = await useReadFile(patch.metaFilePath)
+  const patchDirectoryName = nodePath.dirname(patch.metaFilePath)
+  const parsedItemsInfo = await parseItemsText(
+    itemsText,
+    patchDirectoryName,
+    moduleName => {
+      const { modules: moduleSettings } = formattedSetting.value
+      const moduleSetting = moduleSettings[moduleName]
+      return moduleSetting && {
+        rootDirectory: patchDirectoryName,
+        replacements: moduleSetting.replacements
+      }
+    },
+    async parsedItem => {
+      const parsedSourcePathFileInfo = parseFileInfo(parsedItem.sourcePath)
+      if (!parsedSourcePathFileInfo) {
+        parsedItem.status = 'error'
+        parsedItem.message = `路径解析错误 | ${JSON.stringify({ itemText: parsedItem.text })}`
+        return []
+      }
+      const globSourcePathPattern = nodePath.join(patchDirectoryName, `${parsedSourcePathFileInfo.baseName}$*${parsedSourcePathFileInfo.extension}`)
+      const globSourcePaths = (await useGlobby(globSourcePathPattern) as string[])
+      return globSourcePaths.map(globSourcePath => {
+        const parsedGlobSourcePathFileInfo = parseFileInfo(globSourcePath)
+        if (!parsedGlobSourcePathFileInfo) {
+          parsedItem.status = 'error'
+          parsedItem.message = `路径解析错误 | ${JSON.stringify({ itemText: parsedItem.text })}`
+          return {
+            sourcePath: '',
+            targetPath: '',
+            targetFilename: '',
+            classPath: ''
+          }
+        }
+
+        return {
+          sourcePath: globSourcePath,
+          targetPath: patchDirectoryName ? nodePath.join(patchDirectoryName, parsedGlobSourcePathFileInfo.filename) : '',
+          targetFilename: parsedGlobSourcePathFileInfo.filename,
+          classPath: parsedItem.classPath.replace(parsedSourcePathFileInfo.baseName, parsedGlobSourcePathFileInfo.baseName)
+        }
+      })
+    }
+  )
+
+  return {
+    name: patchDirectoryName,
+    items: parsedItemsInfo.items,
+    relatedModuleNames: parsedItemsInfo.relatedModuleNames
   }
 }
 
@@ -464,53 +578,68 @@ async function handlePreCombinePatch(selectedPatch?: PatchModel) {
     const { buildPackages, patches } = model.value
 
     const selectedPatches = selectedPatch ? [selectedPatch] : patches
-    const allPatchItems = selectedPatches.reduce((result, selectedPatch) => result.concat(selectedPatch.items), ([] as Array<PatchItemModel>))
+    const itemGroups = selectedPatches.reduce((result, patch) => {
+      patch.result.warningCount = 0
+      patch.result.errorCount = 0
+      result.push(patch.items)
+      return result
+    }, ([] as Array<Array<PatchItemModel>>))
 
-    for (const patchItem of allPatchItems) {
-      const { moduleName } = patchItem
-      const moduleSetting = moduleSettings[moduleName]
+    for (let i = 0; i < itemGroups.length; i++) {
+      const items = itemGroups[i]
+      const patch = selectedPatches[i]
+      for (const item of items) {
+        const { moduleName, status } = item
+        if (status === 'error') {
+          continue
+        }
+        const moduleSetting = moduleSettings[moduleName]
 
-      patchItem.targetBuildPackages = []
-      patchItem.targetDirectCombineBuildPackages = []
+        item.targetBuildPackages = []
+        item.targetDirectCombineBuildPackages = []
 
-      for (const buildPackage of buildPackages) {
-        const { filePath, unzippedJarPackagePathMap } = buildPackage
+        for (const buildPackage of buildPackages) {
+          const { filePath, unzippedJarPackagePathMap } = buildPackage
 
-        buildPackage.unzipJarPackageDestDirectory = buildPackage.unzipJarPackageDestDirectory || nodePath.join(tempUnzipDirectory, `${nodePath.parse(buildPackage.filePath).name}-${Date.now()}`)
+          buildPackage.unzipJarPackageDestDirectory = buildPackage.unzipJarPackageDestDirectory || nodePath.join(tempUnzipDirectory, `${nodePath.parse(buildPackage.filePath).name}-${Date.now()}`)
 
-        const jarPackagePath = moduleSetting.jarPackagePath
-        const unzippedJarPackagePath = unzippedJarPackagePathMap[moduleName]
-        if (jarPackagePath && !unzippedJarPackagePath) {
-          try {
-            await useTestArchive(customSevenZip, filePath, [jarPackagePath])
-          } catch (error) {
-            continue
+          const jarPackagePath = moduleSetting.jarPackagePath
+          const unzippedJarPackagePath = unzippedJarPackagePathMap[moduleName]
+          if (jarPackagePath && !unzippedJarPackagePath) {
+            try {
+              await useTestArchive(customSevenZip, filePath, [jarPackagePath])
+            } catch (error) {
+              continue
+            }
+
+            unzippedJarPackagePathMap[moduleName] = jarPackagePath
           }
 
-          unzippedJarPackagePathMap[moduleName] = jarPackagePath
+          if (unzippedJarPackagePathMap[moduleName]) {
+            item.targetBuildPackages.push(buildPackage)
+          }
+
+          if (moduleSetting.directCombine && buildPackage.directCombine && moduleName === buildPackage.moduleName) {
+            item.targetDirectCombineBuildPackages.push(buildPackage)
+          }
         }
 
-        if (unzippedJarPackagePathMap[moduleName]) {
-          patchItem.targetBuildPackages.push(buildPackage)
+        if (item.targetBuildPackages.length === 0 && item.targetDirectCombineBuildPackages.length === 0) {
+          item.status = 'error'
+          item.message = '未找到目标构建包 | 请确认选择的构建包'
+          patch.result.errorCount++
+          continue
         }
 
-        if (moduleSetting.directCombine && buildPackage.directCombine && moduleName === buildPackage.moduleName) {
-          patchItem.targetDirectCombineBuildPackages.push(buildPackage)
-        }
-      }
-
-      if (patchItem.targetBuildPackages.length === 0 && patchItem.targetDirectCombineBuildPackages.length === 0) {
-        patchItem.status = 'error'
-        patchItem.message = '未找到目标构建包 | 请确认选择的构建包'
-      } else {
-        patchItem.status = 'info'
-        patchItem.message = ''
+        item.status = 'info'
+        item.message = ''
       }
     }
 
     combinePatchInfo.value.processing = false
     window.$message?.info('预合并结束')
   }).catch(errors => errors && window.$message?.error('必填参数不能为空'))
+    .finally(() => combinePatchInfo.value.processing = false)
 }
 
 function handleShowItemInFolder(fullPath: string) {
@@ -747,7 +876,24 @@ function buildDefaultModuleSetting(): ModuleSettingModel {
       directCombine: false,
       jarPackagePath: '',
       defaultDirectClassPath: 'WEB-INF/classes',
-      otherDirectClassPaths: [buildDefaultModuleOtherDirectClassPathSetting()]
+      otherDirectClassPaths: [buildDefaultModuleOtherDirectClassPathSetting()],
+      replacements: [
+        buildDefaultModuleReplacementSetting(['.java'], false, {
+          sources: ['.java'],
+          targets: ['.class']
+        }, {
+          source: 'src/main/java',
+          target: 'target/classes'
+        }),
+        buildDefaultModuleReplacementSetting(['.xml'], true, undefined, {
+          source: 'src/main/resources',
+          target: 'target/classes'
+        }),
+        buildDefaultModuleReplacementSetting(['.js', '.html', '.css'], true, undefined, {
+          source: 'src/main/webapp',
+          target: 'target/classes/META-INF/resources'
+        })
+      ]
     }
   }
 }
@@ -763,12 +909,30 @@ function buildDefaultModuleOtherDirectClassPathSetting() {
   }
 }
 
+function buildDefaultModuleReplacementSetting(sourceExtensions: Array<string>, fromSource = false, defaultExtension?: ModuleReplacementExtensionSettingModel, defaultPath?: ModuleReplacementPathSettingModel): ModuleReplacementSettingModel {
+  return {
+    fromSource,
+    extension: defaultExtension ?? {
+      sources: sourceExtensions,
+      targets: sourceExtensions
+    },
+    path: defaultPath ?? {
+      source: '',
+      target: ''
+    }
+  }
+}
+
 function handleCreateModuleSetting() {
   return buildDefaultModuleSetting()
 }
 
 function handleCreateModuleOtherDirectClassPathSetting() {
   return buildDefaultModuleOtherDirectClassPathSetting()
+}
+
+function handleCreateModuleReplacementSetting() {
+  return buildDefaultModuleReplacementSetting([])
 }
 
 const showSetting = ref(false)
