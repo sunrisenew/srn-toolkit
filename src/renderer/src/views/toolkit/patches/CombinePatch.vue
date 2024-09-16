@@ -631,6 +631,11 @@ async function handlePreCombinePatch(selectedPatch?: PatchModel) {
           continue
         }
 
+        const conflicted = checkPatchItemConflict(item, patch, selectedPatches)
+        if (conflicted) {
+          continue
+        }
+
         item.status = 'info'
         item.message = ''
       }
@@ -640,6 +645,27 @@ async function handlePreCombinePatch(selectedPatch?: PatchModel) {
     window.$message?.info('预合并结束')
   }).catch(errors => errors && window.$message?.error('必填参数不能为空'))
     .finally(() => combinePatchInfo.value.processing = false)
+}
+
+function checkPatchItemConflict(selectedPatchItem: PatchItemModel, selectedPatch: PatchModel, selectedPatches: Array<PatchModel>): boolean {
+  let result = false
+
+  selectedPatches.forEach(patch => {
+    if (patch.metaFilePath === selectedPatch.metaFilePath) {
+      return
+    }
+
+    for (const item of patch.items) {
+      if (item.moduleName === selectedPatchItem.moduleName && item.classPath === selectedPatchItem.classPath) {
+        selectedPatchItem.status = 'warning'
+        selectedPatchItem.message = `与增量包【${patch.metaFilePath}】有冲突，请重新确认`
+        selectedPatch.result.warningCount++
+        result = true
+      }
+    }
+  })
+
+  return result
 }
 
 function handleShowItemInFolder(fullPath: string) {
