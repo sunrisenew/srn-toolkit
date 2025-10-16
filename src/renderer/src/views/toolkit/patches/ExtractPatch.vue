@@ -50,12 +50,27 @@
                 <n-dynamic-input v-model:value="patch.scripts" :min="0" :on-create="handleCreatePatchScript">
                   <template #default="{ value: script, index: scriptIndex }: { value: PatchScriptModel, index: number }">
                     <n-card class="script" hoverable>
-                      <n-form-item class="filename" label="文件名" :path="`patches[${patchIndex}].scripts[${scriptIndex}].filename`" :rule="{ required: true, message: '文件名不能为空' }">
-                        <n-input v-model:value="script.filename" clearable @change="handleScriptFilenameChange(patch, script)"></n-input>
-                      </n-form-item>
-                      <n-form-item class="content" label="内容" :path="`patches[${patchIndex}].scripts[${scriptIndex}].content`" :rule="{ required: true, message: '内容不能为空' }">
-                        <n-input v-model:value="script.content" type="textarea" clearable></n-input>
-                      </n-form-item>
+                        <n-tabs v-model:value="script.tab" type="segment" animated>
+                          <n-tab-pane name="file" tab="文件">
+                            <n-form-item class="script-file-path" label="文件路径" :path="`patches[${patchIndex}].scripts[${scriptIndex}].filePath`" :rule="{ required: script.tab === 'file', message: '构建包文件路径不能为空' }">
+                              <n-input-group>
+                                <n-input v-model:value="script.filePath" placeholder="请选择" readonly></n-input>
+                                <n-button type="info" ghost @click="handleOpenFile(script, 'filePath', [{ name: 'Script', extensions: ['sql'] }], () => handleScriptFilePathChange(patch, script))">选择</n-button>
+                              </n-input-group>
+                            </n-form-item>
+                            <n-form-item class="filename" label="文件名" :path="`patches[${patchIndex}].scripts[${scriptIndex}].filename`">
+                              <n-input v-model:value="script.filename" clearable @change="handleScriptFilenameChange(patch, script)"></n-input>
+                            </n-form-item>
+                          </n-tab-pane>
+                          <n-tab-pane name="content" tab="内容">
+                            <n-form-item class="filename" label="文件名" :path="`patches[${patchIndex}].scripts[${scriptIndex}].filename`" :rule="{ required: script.tab === 'content', message: '文件名不能为空' }">
+                              <n-input v-model:value="script.filename" clearable @change="handleScriptFilenameChange(patch, script)"></n-input>
+                            </n-form-item>
+                            <n-form-item class="content" label="内容" :path="`patches[${patchIndex}].scripts[${scriptIndex}].content`" :rule="{ required: script.tab === 'content', message: '内容不能为空' }">
+                              <n-input v-model:value="script.content" type="textarea" clearable></n-input>
+                            </n-form-item>
+                          </n-tab-pane>
+                      </n-tabs>
                     </n-card>
                   </template>
                 </n-dynamic-input>
@@ -102,6 +117,12 @@
                         <n-badge :type="script.status" dot></n-badge>
                       </template>
                       <n-grid :y-gap="10">
+                        <template v-if="script.tab === 'file'">
+                          <n-grid-item :span="2">原路径</n-grid-item>
+                          <n-grid-item :span="22">
+                            <n-text class="clickable" type="info" underline @click="handleShowItemInFolder(script.sourcePath)">{{ script.sourcePath }}</n-text>
+                          </n-grid-item>
+                        </template>
                         <n-grid-item :span="2">目标路径</n-grid-item>
                         <n-grid-item :span="22">
                           <n-text class="clickable" type="info" underline @click="handleShowItemInFolder(script.targetPath)">{{ script.targetPath }}</n-text>
@@ -248,8 +269,11 @@ type Model = {
     name: string
     directory: string
     scripts: Array<{
+      tab: 'file' | 'content'
+      filePath: string
       filename: string
       content: string
+      sourcePath: string
       targetPath: string
       status: 'success' | 'info' | 'warning' | 'error'
       message: string
@@ -343,13 +367,14 @@ type PatchItemMeta = PatchMeta['items'][0]
 </script>
 
 <script setup lang="ts">
-import { useCopyFile, useGetAppVersion, useLoadSetting, useNodePath, useOpenDirectoryDialog, useSaveSetting, useShowItemInFolder, useShowSettingFileInFolder, useWriteFile, useWriteJsonFile } from '@renderer/compositions/ipc-renderer'
+import { useCopyFile, useGetAppVersion, useLoadSetting, useNodePath, useOpenDirectoryDialog, useOpenFileDialog, useSaveSetting, useShowItemInFolder, useShowSettingFileInFolder, useWriteFile, useWriteJsonFile } from '@renderer/compositions/ipc-renderer'
 import { driver } from 'driver.js'
 import { defaultsDeep as _defaultsDeep } from 'lodash-es'
-import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSelect, NSpace, NSpin, NTag, NText } from 'naive-ui'
+import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSelect, NSpace, NSpin, NTabPane, NTabs, NTag, NText } from 'naive-ui'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { parseItemsText } from './patch'
+import { parseFileInfo } from '@renderer/utils/path'
 
 const nodePath = useNodePath()
 const appVersion = ref('')
@@ -394,8 +419,11 @@ function buildDefaultPatch(): PatchModel {
 
 function buildDefaultPatchScript(): PatchScriptModel {
   return {
+    tab: 'file',
+    filePath: '',
     filename: '',
     content: '',
+    sourcePath: '',
     targetPath: '',
     status: 'warning',
     message: ''
@@ -418,12 +446,32 @@ function buildPatchDirectory(patch: PatchModel) {
   return nodePath.join(model.value.patchRootDirectory, patch.name)
 }
 
+async function handleOpenFile(model, key, filters?: Array<Record<string, unknown>>, onChange?: (model) => void) {
+  const { filePaths } = await useOpenFileDialog({
+    defaultPath: model[key] || '',
+    filters
+  })
+  model[key] = filePaths?.[0] ?? model[key]
+  onChange && onChange(model)
+}
+
 async function handleOpenDirectory(model, key, onChange?: (model) => void) {
   const { filePaths } = await useOpenDirectoryDialog({
     defaultPath: model[key] || ''
   })
   model[key] = filePaths?.[0] ?? model[key]
   onChange && onChange(model)
+}
+
+function handleScriptFilePathChange(patch: PatchModel, script: PatchScriptModel) {
+  script.filename = script.filename || parseFileInfo(script.filePath)?.filename || ''
+
+  Object.assign(script, {
+    sourcePath: script.filePath,
+    targetPath: nodePath.join(buildPatchDirectory(patch), 'scripts', script.filename),
+    status: 'info',
+    message: '待处理'
+  })
 }
 
 function handleScriptFilenameChange(patch: PatchModel, script: PatchScriptModel) {
@@ -437,11 +485,31 @@ function handleScriptFilenameChange(patch: PatchModel, script: PatchScriptModel)
 function handleParsePatchScripts(patch: PatchModel) {
   const { scripts } = patch
   for (const script of scripts) {
-    Object.assign(script, {
-      targetPath: nodePath.join(buildPatchDirectory(patch), 'scripts', script.filename),
-      status: 'info',
-      message: '待处理'
-    })
+    switch (script.tab) {
+      case 'file': {
+        Object.assign(script, {
+          sourcePath: script.filePath,
+          targetPath: nodePath.join(buildPatchDirectory(patch), 'scripts', script.filename || parseFileInfo(script.filePath)?.filename || ''),
+          status: 'info',
+          message: '待处理'
+        })
+        break
+      }
+      case 'content': {
+        Object.assign(script, {
+          targetPath: nodePath.join(buildPatchDirectory(patch), 'scripts', script.filename),
+          status: 'info',
+          message: '待处理'
+        })
+        break
+      }
+      default:
+        Object.assign(script, {
+          status: 'error',
+          message: '不支持的类型'
+        })
+        break
+    }
   }
 }
 
@@ -528,15 +596,37 @@ function handleExtractPatch(selectedPatch?: PatchModel) {
           return
         }
 
-        await useWriteFile(script.targetPath, script.content).then(() => {
-          script.status = 'success'
-          script.message = '成功'
-          result.successCount++
-        }).catch(error => {
-          script.status = 'error'
-          script.message = `文件写入错误 | ${error.message}`
-          result.errorCount++
-        })
+        switch (script.tab) {
+          case 'file': {
+            await useCopyFile(script.sourcePath, script.targetPath).then(() => {
+              script.status = 'success'
+              script.message = '成功'
+              result.successCount++
+            }).catch(error => {
+              script.status = 'error'
+              script.message = `文件复制错误 | ${error.message}`
+              result.errorCount++
+            })
+            break
+          }
+          case 'content': {
+            await useWriteFile(script.targetPath, script.content).then(() => {
+              script.status = 'success'
+              script.message = '成功'
+              result.successCount++
+            }).catch(error => {
+              script.status = 'error'
+              script.message = `文件写入错误 | ${error.message}`
+              result.errorCount++
+            })
+            break
+          }
+          default:
+            script.status = 'error'
+            script.message = '不支持的类型'
+            result.errorCount++
+            break
+        }
       }
 
       const successItems: Array<PatchItemMeta> = []
