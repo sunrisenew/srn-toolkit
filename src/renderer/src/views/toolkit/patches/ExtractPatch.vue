@@ -50,26 +50,26 @@
                 <n-dynamic-input v-model:value="patch.scripts" :min="0" :on-create="handleCreatePatchScript">
                   <template #default="{ value: script, index: scriptIndex }: { value: PatchScriptModel, index: number }">
                     <n-card class="script" hoverable>
-                        <n-tabs v-model:value="script.tab" type="segment" animated>
-                          <n-tab-pane name="file" tab="文件">
-                            <n-form-item class="script-file-path" label="文件路径" :path="`patches[${patchIndex}].scripts[${scriptIndex}].filePath`" :rule="{ required: script.tab === 'file', message: '构建包文件路径不能为空' }">
-                              <n-input-group>
-                                <n-input v-model:value="script.filePath" placeholder="请选择" readonly></n-input>
-                                <n-button type="info" ghost @click="handleOpenFile(script, 'filePath', [{ name: 'Script', extensions: ['sql'] }], () => handleScriptFilePathChange(patch, script))">选择</n-button>
-                              </n-input-group>
-                            </n-form-item>
-                            <n-form-item class="filename" label="文件名" :path="`patches[${patchIndex}].scripts[${scriptIndex}].filename`">
-                              <n-input v-model:value="script.filename" clearable @change="handleScriptFilenameChange(patch, script)"></n-input>
-                            </n-form-item>
-                          </n-tab-pane>
-                          <n-tab-pane name="content" tab="内容">
-                            <n-form-item class="filename" label="文件名" :path="`patches[${patchIndex}].scripts[${scriptIndex}].filename`" :rule="{ required: script.tab === 'content', message: '文件名不能为空' }">
-                              <n-input v-model:value="script.filename" clearable @change="handleScriptFilenameChange(patch, script)"></n-input>
-                            </n-form-item>
-                            <n-form-item class="content" label="内容" :path="`patches[${patchIndex}].scripts[${scriptIndex}].content`" :rule="{ required: script.tab === 'content', message: '内容不能为空' }">
-                              <n-input v-model:value="script.content" type="textarea" clearable></n-input>
-                            </n-form-item>
-                          </n-tab-pane>
+                      <n-tabs v-model:value="script.tab" type="segment" animated>
+                        <n-tab-pane name="file" tab="文件">
+                          <n-form-item class="script-file-path" label="文件路径" :path="`patches[${patchIndex}].scripts[${scriptIndex}].filePath`" :rule="{ required: script.tab === 'file', message: '构建包文件路径不能为空' }">
+                            <n-input-group>
+                              <n-input v-model:value="script.filePath" placeholder="请选择" readonly></n-input>
+                              <n-button type="info" ghost @click="handleOpenFile(script, 'filePath', [{ name: 'Script', extensions: ['sql'] }], () => handleScriptFilePathChange(patch, script))">选择</n-button>
+                            </n-input-group>
+                          </n-form-item>
+                          <n-form-item class="filename" label="文件名" :path="`patches[${patchIndex}].scripts[${scriptIndex}].filename`">
+                            <n-input v-model:value="script.filename" clearable @change="handleScriptFilenameChange(patch, script)"></n-input>
+                          </n-form-item>
+                        </n-tab-pane>
+                        <n-tab-pane name="content" tab="内容">
+                          <n-form-item class="filename" label="文件名" :path="`patches[${patchIndex}].scripts[${scriptIndex}].filename`" :rule="{ required: script.tab === 'content', message: '文件名不能为空' }">
+                            <n-input v-model:value="script.filename" clearable @change="handleScriptFilenameChange(patch, script)"></n-input>
+                          </n-form-item>
+                          <n-form-item class="content" label="内容" :path="`patches[${patchIndex}].scripts[${scriptIndex}].content`" :rule="{ required: script.tab === 'content', message: '内容不能为空' }">
+                            <n-input v-model:value="script.content" type="textarea" clearable></n-input>
+                          </n-form-item>
+                        </n-tab-pane>
                       </n-tabs>
                     </n-card>
                   </template>
