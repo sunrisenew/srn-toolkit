@@ -556,6 +556,7 @@ async function parsePatchItems(patch: PatchModel) {
   patch.relatedModuleNames = itemsParsedInfo.relatedModuleNames
 
   const { result } = patch
+  result.successCount = 0
   result.warningCount = 0
   result.errorCount = 0
   itemsInfo.items.forEach(item => {
