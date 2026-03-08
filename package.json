@@ -30,6 +30,7 @@
     "@electron-toolkit/utils": "4.0.0",
     "@vuepress/plugin-prismjs": "2.0.0-rc.125",
     "cross-spawn": "7.0.6",
+    "dayjs": "1.11.19",
     "driver.js": "1.4.0",
     "electron-serve": "3.0.1",
     "electron-updater": "6.8.3",
