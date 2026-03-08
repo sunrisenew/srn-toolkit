@@ -220,6 +220,9 @@
                           <n-dynamic-input v-model:value="module.setting.replacements" :min="1" :on-create="handleCreateModuleReplacementSetting">
                             <template #default="{ value: replacement, index: replacementIndex }: { value: ModuleReplacementSettingModel, index: number }">
                               <n-card hoverable>
+                                <n-form-item label="从源码抽取" :path="`modules[${moduleIndex}].setting.replacements[${replacementIndex}].fromSource`">
+                                  <n-switch v-model:value="replacement.fromSource"></n-switch>
+                                </n-form-item>
                                 <n-form-item label="原扩展名组" :path="`modules[${moduleIndex}].setting.replacements[${replacementIndex}].extension.sources`" :rule="{ required: true, message: '原扩展名组不能为空' }">
                                   <n-select v-model:value="replacement.extension.sources" :show-arrow="false" :show="false" placeholder="请选择" tag multiple filterable clearable></n-select>
                                 </n-form-item>
@@ -370,7 +373,7 @@ type PatchItemMeta = PatchMeta['items'][0]
 import { useCopyFile, useGetAppVersion, useLoadSetting, useNodePath, useOpenDirectoryDialog, useOpenFileDialog, useSaveSetting, useShowItemInFolder, useShowSettingFileInFolder, useWriteFile, useWriteJsonFile } from '@renderer/compositions/ipc-renderer'
 import { driver } from 'driver.js'
 import { defaultsDeep as _defaultsDeep } from 'lodash-es'
-import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSelect, NSpace, NSpin, NTabPane, NTabs, NTag, NText } from 'naive-ui'
+import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSelect, NSpace, NSpin, NSwitch, NTabPane, NTabs, NTag, NText } from 'naive-ui'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { parseItemsText } from './patch'
