@@ -29,7 +29,7 @@
                 <n-h3 prefix="bar" style="margin: 0;">
                   <span>增量包 - {{ patchIndex + 1 }}</span>
                   <n-divider vertical></n-divider>
-                  <n-text type="info">{{ patch.name }}</n-text>
+                  <n-text type="info">{{ patch.finalName }}</n-text>
                   <n-space>
                     <n-tag v-for="(relatedModuleName, relatedModuleNameIndex) in patch.relatedModuleNames" :key="relatedModuleNameIndex"
                       type="info" round>{{ relatedModuleName }}</n-tag>
@@ -44,7 +44,11 @@
                 </n-space>
               </template>
               <n-form-item class="name" label="名称" :path="`patches[${patchIndex}].name`" :rule="{ required: true, message: '名称不能为空' }">
-                <n-input v-model:value="patch.name" clearable @change="handleReParsePatch(patch)"></n-input>
+                <n-input-group>
+                  <n-input v-model:value="patch.name" clearable @change="handleReParsePatch(patch)"></n-input>
+                  <n-date-picker v-model:formatted-value="patch.createDate" type="date" format="yyyyMMdd" clearable @update:formatted-value="handleReParsePatch(patch)"></n-date-picker>
+                  <n-input-number v-model:value="patch.version" :min="1" :format="value => value ? value.toString().padStart(2, '0') : ''" clearable @update:value="handleReParsePatch(patch)"></n-input-number>
+                </n-input-group>
               </n-form-item>
               <n-form-item class="scripts" label="脚本">
                 <n-dynamic-input v-model:value="patch.scripts" :min="0" :on-create="handleCreatePatchScript">
@@ -97,7 +101,7 @@
                       <template #header>
                         <span>增量包</span>
                         <n-divider vertical></n-divider>
-                        <n-text type="info">{{ patch.name }}</n-text>
+                        <n-text type="info">{{ patch.finalName }}</n-text>
                       </template>
                       <n-grid :y-gap="10">
                         <n-grid-item :span="2">目标路径</n-grid-item>
@@ -270,6 +274,9 @@ type Model = {
   patchRootDirectory: string
   patches: Array<{
     name: string
+    createDate?: string,
+    version?: number,
+    finalName: string,
     directory: string
     scripts: Array<{
       tab: 'file' | 'content'
@@ -350,6 +357,7 @@ type FormattedSetting = {
 
 type PatchMeta = {
   name: string
+  finalName: string,
   relatedModuleNames: string[]
   itemTexts: string[]
   items: Array<{
@@ -373,11 +381,12 @@ type PatchItemMeta = PatchMeta['items'][0]
 import { useCopyFile, useGetAppVersion, useLoadSetting, useNodePath, useOpenDirectoryDialog, useOpenFileDialog, useSaveSetting, useShowItemInFolder, useShowSettingFileInFolder, useWriteFile, useWriteJsonFile } from '@renderer/compositions/ipc-renderer'
 import { driver } from 'driver.js'
 import { defaultsDeep as _defaultsDeep } from 'lodash-es'
-import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NPageHeader, NSelect, NSpace, NSpin, NSwitch, NTabPane, NTabs, NTag, NText } from 'naive-ui'
+import { FormInst, NBadge, NButton, NCard, NCollapse, NCollapseItem, NDatePicker, NDivider, NDrawer, NDrawerContent, NDynamicInput, NForm, NFormItem, NGrid, NGridItem, NH1, NH2, NH3, NInput, NInputGroup, NInputNumber, NPageHeader, NSelect, NSpace, NSpin, NSwitch, NTabPane, NTabs, NTag, NText } from 'naive-ui'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { parseItemsText } from './patch'
 import { parseFileInfo } from '@renderer/utils/path'
+import dayjs from 'dayjs'
 
 const nodePath = useNodePath()
 const appVersion = ref('')
@@ -404,6 +413,9 @@ const modelFormRef = ref<FormInst | null>(null)
 function buildDefaultPatch(): PatchModel {
   return {
     name: '',
+    createDate: dayjs().format('YYYYMMDD'),
+    version: 1,
+    finalName: '',
     directory: '',
     scripts: [],
     metaFilename: 'meta.json',
@@ -442,11 +454,11 @@ function handleCreatePatchScript() {
 }
 
 function buildPatchDirectory(patch: PatchModel) {
-  if (!model.value.patchRootDirectory || !patch.name) {
+  if (!model.value.patchRootDirectory || !patch.finalName) {
     return ''
   }
 
-  return nodePath.join(model.value.patchRootDirectory, patch.name)
+  return nodePath.join(model.value.patchRootDirectory, patch.finalName)
 }
 
 async function handleOpenFile(model, key, filters?: Array<Record<string, unknown>>, onChange?: (model) => void) {
@@ -464,6 +476,15 @@ async function handleOpenDirectory(model, key, onChange?: (model) => void) {
   })
   model[key] = filePaths?.[0] ?? model[key]
   onChange && onChange(model)
+}
+
+function handleBuildPatchFinalName(patch: PatchModel) {
+  patch.finalName = ''
+  if (patch.name) {
+    patch.finalName += patch.name
+    patch.finalName += patch.createDate ? `-${patch.createDate}` : ''
+    patch.finalName += patch.version ? patch.version.toString().padStart(2, '0') : ''
+  }
 }
 
 function handleScriptFilePathChange(patch: PatchModel, script: PatchScriptModel) {
@@ -561,6 +582,7 @@ function handleResetPatch(selectedPatch?: PatchModel) {
 function handleReParsePatch(selectedPatch?: PatchModel) {
   const patches = selectedPatch ? [selectedPatch] : model.value.patches
   for (const patch of patches) {
+    handleBuildPatchFinalName(patch)
     handleParsePatchScripts(patch)
     parsePatchItems(patch)
   }
@@ -588,7 +610,7 @@ function handleExtractPatch(selectedPatch?: PatchModel) {
     const selectedPatches = selectedPatch ? [selectedPatch] : patches
     let processedPatchCount = 0
     for (const patch of selectedPatches) {
-      const { name, scripts, metaFilename, relatedModuleNames, itemsInfo: { items }, result } = patch
+      const { name, finalName, scripts, metaFilename, relatedModuleNames, itemsInfo: { items }, result } = patch
 
       result.successCount = 0
       result.warningCount = 0
@@ -680,6 +702,7 @@ function handleExtractPatch(selectedPatch?: PatchModel) {
         patch.directory = buildPatchDirectory(patch)
         const patchMeta: PatchMeta = {
           name,
+          finalName,
           relatedModuleNames,
           itemTexts: successItems.map(value => value.text),
           items: successItems
