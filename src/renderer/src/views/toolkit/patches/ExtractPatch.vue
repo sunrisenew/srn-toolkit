@@ -50,6 +50,9 @@
                   <n-input-number v-model:value="patch.version" :min="1" :format="value => value ? value.toString().padStart(2, '0') : ''" clearable @update:value="handleReParsePatch(patch)"></n-input-number>
                 </n-input-group>
               </n-form-item>
+              <n-form-item class="nested" label="是否嵌套" :path="`patches[${patchIndex}].nested`">
+                <n-switch v-model:value="patch.nested" @update:value="handleReParsePatch(patch)"></n-switch>
+              </n-form-item>
               <n-form-item class="scripts" label="脚本">
                 <n-dynamic-input v-model:value="patch.scripts" :min="0" :on-create="handleCreatePatchScript">
                   <template #default="{ value: script, index: scriptIndex }: { value: PatchScriptModel, index: number }">
@@ -197,6 +200,9 @@
                 <n-button type="info" ghost @click="handleOpenDirectory(settingModel, 'defaultPatchRootDirectory')">选择</n-button>
               </n-input-group>
             </n-form-item>
+            <n-form-item class="default-nested" label="默认是否嵌套" path="defaultNested">
+              <n-switch v-model:value="settingModel.defaultNested"></n-switch>
+            </n-form-item>
             <n-h2 prefix="bar">模块配置</n-h2>
             <n-dynamic-input v-model:value="settingModel.modules" :min="1" :on-create="handleCreateModuleSetting">
               <template #default="{ value: module, index: moduleIndex }: { value: ModuleSettingModel, index: number }">
@@ -278,6 +284,7 @@ type Model = {
     version?: number,
     finalName: string,
     directory: string
+    nested: boolean
     scripts: Array<{
       tab: 'file' | 'content'
       filePath: string
@@ -324,6 +331,7 @@ type PatchScriptModel = PatchModel['scripts'][0]
 type SettingModel = {
   version: string
   defaultPatchRootDirectory: string
+  defaultNested: boolean
   modules: Array<{
     name: string
     setting: {
@@ -350,6 +358,7 @@ type ModuleReplacementPathSettingModel = ModuleReplacementSettingModel['path']
 
 type FormattedSetting = {
   defaultPatchRootDirectory: string
+  defaultNested: boolean
   modules: {
     [key: string]: ModuleSettingValueModel
   }
@@ -358,6 +367,7 @@ type FormattedSetting = {
 type PatchMeta = {
   name: string
   finalName: string,
+  nested: boolean,
   relatedModuleNames: string[]
   itemTexts: string[]
   items: Array<{
@@ -406,7 +416,7 @@ onMounted(async () => {
 
 const model = ref<Model>({
   patchRootDirectory: '',
-  patches: [buildDefaultPatch()]
+  patches: []
 })
 const modelFormRef = ref<FormInst | null>(null)
 
@@ -422,6 +432,7 @@ function buildDefaultPatch(): PatchModel {
     version: 1,
     finalName: '',
     directory: '',
+    nested: formattedSetting.value.defaultNested,
     scripts: [],
     metaFilename: 'meta.json',
     relatedModuleNames: [],
@@ -547,10 +558,11 @@ function handleItemsTextChange(patch: PatchModel) {
 }
 
 async function parsePatchItems(patch: PatchModel) {
-  const { itemsInfo } = patch
+  const { nested, itemsInfo } = patch
   const itemsParsedInfo = await parseItemsText(
     itemsInfo.text,
     buildPatchDirectory(patch),
+    nested,
     moduleName => {
       const { modules: moduleSettings } = formattedSetting.value
       return moduleSettings[moduleName]
@@ -616,7 +628,7 @@ function handleExtractPatch(selectedPatch?: PatchModel) {
     const selectedPatches = selectedPatch ? [selectedPatch] : patches
     let processedPatchCount = 0
     for (const patch of selectedPatches) {
-      const { name, finalName, scripts, metaFilename, relatedModuleNames, itemsInfo: { items }, result } = patch
+      const { name, finalName, nested, scripts, metaFilename, relatedModuleNames, itemsInfo: { items }, result } = patch
 
       result.successCount = 0
       result.warningCount = 0
@@ -709,6 +721,7 @@ function handleExtractPatch(selectedPatch?: PatchModel) {
         const patchMeta: PatchMeta = {
           name,
           finalName,
+          nested,
           relatedModuleNames,
           itemTexts: successItems.map(value => value.text),
           items: successItems
@@ -731,6 +744,7 @@ function handleExtractPatch(selectedPatch?: PatchModel) {
 const settingModel = ref<SettingModel>({
   version: '',
   defaultPatchRootDirectory: '',
+  defaultNested: false,
   modules: [buildDefaultModuleSetting()]
 })
 const settingModelFormRef = ref<FormInst | null>(null)
@@ -744,6 +758,7 @@ const formattedSetting = computed<FormattedSetting>(() => {
 
   return {
     defaultPatchRootDirectory: settingCopy.defaultPatchRootDirectory,
+    defaultNested: settingCopy.defaultNested,
     modules
   }
 })

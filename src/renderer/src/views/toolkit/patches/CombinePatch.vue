@@ -66,6 +66,9 @@
                   <n-button type="info" ghost @click="handleOpenFile(patch, 'metaFilePath', [{ name: 'Meta File', extensions: ['json', 'txt'] }], handleMetaFilePathChange)">选择</n-button>
                 </n-input-group>
               </n-form-item>
+              <n-form-item class="nested" label="是否嵌套" :path="`patches[${patchIndex}].nested`">
+                <n-switch v-model:value="patch.nested" @update:value="handleReParsePatch(patch)"></n-switch>
+              </n-form-item>
               <n-grid :y-gap="10">
                 <n-grid-item :span="2">名称</n-grid-item>
                 <n-grid-item :span="22">{{ patch.name }}</n-grid-item>
@@ -286,6 +289,7 @@ type Model = {
     metaFilePath: string
     name: string
     directory: string
+    nested: boolean
     relatedModuleNames: Array<string>
     items: Array<{
       action: '?' | 'A' | 'M' | 'D'
@@ -420,6 +424,7 @@ function buildDefaultPatch(): PatchModel {
     metaFilePath: '',
     name: '',
     directory: '',
+    nested: false,
     relatedModuleNames: [],
     items: [],
     result: {
@@ -475,7 +480,8 @@ async function parsePatch(patch: PatchModel) {
     const meta = {
       name: '',
       items: [],
-      relatedModuleNames: []
+      relatedModuleNames: [],
+      nested: false
     }
     if (metaFileExtension === '.json') {
       const jsonMeta = await useReadJsonFile(patch.metaFilePath)
@@ -487,9 +493,10 @@ async function parsePatch(patch: PatchModel) {
     }
     patch.name = meta.name
     patch.directory = nodePath.dirname(patch.metaFilePath)
+    patch.nested = meta.nested || false
     const relatedModuleNames = new Set<string>()
     meta.items.forEach((item: PatchItemModel) => {
-      const { moduleName, targetFilename, extraItems } = item
+      const { moduleName, targetFilename, classPath, extraItems } = item
       relatedModuleNames.add(moduleName)
       const { modules: moduleSettings } = formattedSetting.value
       const moduleSetting = moduleSettings[moduleName]
@@ -500,13 +507,13 @@ async function parsePatch(patch: PatchModel) {
         status: 'error',
         message: `未找到模块配置 | ${JSON.stringify({ moduleName })}`
       }, {
-        filePath: nodePath.join(patch.directory, targetFilename),
+        filePath: nodePath.join(patch.directory, patch.nested ? classPath : targetFilename),
         targetBuildPackages: [],
         targetDirectCombineBuildPackages: []
       })
 
       extraItems.forEach(extraItem => Object.assign(extraItem, {
-        filePath: nodePath.join(patch.directory, extraItem.targetFilename)
+        filePath: nodePath.join(patch.directory, patch.nested ? extraItem.classPath : extraItem.targetFilename)
       }))
     })
     patch.items = meta.items
@@ -533,6 +540,7 @@ async function transformTextMetaFile(patch: PatchModel) {
   const parsedItemsInfo = await parseItemsText(
     itemsText,
     patchDirectoryName,
+    false,
     moduleName => {
       const { modules: moduleSettings } = formattedSetting.value
       const moduleSetting = moduleSettings[moduleName]
@@ -716,7 +724,7 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
     const selectedPatches = selectedPatch ? [selectedPatch] : patches
     let processedPatchCount = 0
     for (const selectedPatch of selectedPatches) {
-      const { directory, items, result } = selectedPatch
+      const { directory, nested, items, result } = selectedPatch
 
       result.successCount = 0
       result.warningCount = 0
@@ -728,7 +736,7 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
           continue
         }
 
-        const { action, moduleName, targetFilename, classPath, extraItems, targetBuildPackages, targetDirectCombineBuildPackages } = item
+        const { action, filePath, moduleName, classPath, extraItems, targetBuildPackages, targetDirectCombineBuildPackages } = item
         const moduleSetting = moduleSettings[moduleName]
         const { defaultDirectClassPath, otherDirectClassPaths } = moduleSetting
         const classPathFileInfo = parseFileInfo(classPath)
@@ -755,11 +763,15 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
                 default:
                 case 'A':
                 case 'M': {
-                  await useCopyFile(nodePath.join(directory, targetFilename), nodePath.join(directory, classPath))
+                  if (!nested) {
+                    await useCopyFile(filePath, nodePath.join(directory, classPath))
+                  }
                   await useAddArchive(customSevenZip, nodePath.join(unzipJarPackageDestDirectory, matchedUnzippedJarPackagePath), directory, [classPath])
 
                   for (const extraItem of extraItems) {
-                    await useCopyFile(nodePath.join(directory, extraItem.targetFilename), nodePath.join(directory, extraItem.classPath))
+                    if (!nested) {
+                      await useCopyFile(extraItem.filePath, nodePath.join(directory, extraItem.classPath))
+                    }
                     await useAddArchive(customSevenZip, nodePath.join(unzipJarPackageDestDirectory, matchedUnzippedJarPackagePath), directory, [extraItem.classPath])
                   }
                   break
@@ -793,11 +805,11 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
                 default:
                 case 'A':
                 case 'M': {
-                  await useCopyFile(nodePath.join(directory, targetFilename), nodePath.join(directory, defaultDirectClassPath, classPath))
+                  await useCopyFile(filePath, nodePath.join(directory, defaultDirectClassPath, classPath))
                   await useAddArchive(customSevenZip, buildFilePath, directory, [nodePath.join(defaultDirectClassPath, classPath)])
 
                   for (const extraItem of extraItems) {
-                    await useCopyFile(nodePath.join(directory, extraItem.targetFilename), nodePath.join(directory, defaultDirectClassPath, extraItem.classPath))
+                    await useCopyFile(extraItem.filePath, nodePath.join(directory, defaultDirectClassPath, extraItem.classPath))
                     await useAddArchive(customSevenZip, buildFilePath, directory, [nodePath.join(defaultDirectClassPath, extraItem.classPath)])
                   }
 
@@ -811,12 +823,12 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
                     }
 
                     if (otherDirectClassPath.extensions.includes(replacedClassPathFileInfo.extension)) {
-                      await useCopyFile(nodePath.join(directory, targetFilename), nodePath.join(directory, otherDirectClassPath.classPath, replacedClassPath))
+                      await useCopyFile(filePath, nodePath.join(directory, otherDirectClassPath.classPath, replacedClassPath))
                       await useAddArchive(customSevenZip, buildFilePath, directory, [nodePath.join(otherDirectClassPath.classPath, replacedClassPath)])
 
                       for (const extraItem of extraItems) {
                         const replacedExtraClassPath = extraItem.classPath.replaceAll(otherDirectClassPath.replacement.source, otherDirectClassPath.replacement.target)
-                        await useCopyFile(nodePath.join(directory, extraItem.targetFilename), nodePath.join(directory, otherDirectClassPath.classPath, replacedExtraClassPath))
+                        await useCopyFile(extraItem.filePath, nodePath.join(directory, otherDirectClassPath.classPath, replacedExtraClassPath))
                         await useAddArchive(customSevenZip, buildFilePath, directory, [nodePath.join(otherDirectClassPath.classPath, replacedExtraClassPath)])
                       }
                     }

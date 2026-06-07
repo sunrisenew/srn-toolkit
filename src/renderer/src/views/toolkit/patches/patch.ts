@@ -39,6 +39,7 @@ type ParsedPatchItemModel = {
 export async function parseItemsText(
   itemsText: string,
   patchDirectory: string,
+  nested: boolean,
   moduleParseSettingProvider: (moduleName: string) => ModuleParseSettingModel,
   extractItemsProvider?: (parsedItem: ParsedPatchItemModel) => Promise<Array<{
     sourcePath: string
@@ -55,7 +56,7 @@ export async function parseItemsText(
     ? await Promise.all(
       itemTexts
         .filter(itemText => itemText)
-        .map(itemText => parseItemText(itemText.trim(), patchDirectory, moduleParseSettingProvider, extractItemsProvider))
+        .map(itemText => parseItemText(itemText.trim(), patchDirectory, nested, moduleParseSettingProvider, extractItemsProvider))
     )
     : []
 
@@ -70,6 +71,7 @@ export async function parseItemsText(
 export async function parseItemText(
   itemText: string,
   patchDirectory: string,
+  nested: boolean,
   moduleParseSettingProvider: (moduleName: string) => ModuleParseSettingModel,
   extractItemsProvider?: (parsedItem: ParsedPatchItemModel) => Promise<Array<{
     sourcePath: string
@@ -141,18 +143,18 @@ export async function parseItemText(
     }
   }
 
-  const replacedSourceFileInfo = parseFileInfo(finalSourceRelativePath)
-  if (!replacedSourceFileInfo) {
+  const finalSourceRelativeFileInfo = parseFileInfo(finalSourceRelativePath)
+  if (!finalSourceRelativeFileInfo) {
     parsedItem.status = 'error'
     parsedItem.message = `路径解析错误 | ${JSON.stringify({ itemText: itemText })}`
     return parsedItem
   }
 
-  const { filename: replacedSourceFilename } = replacedSourceFileInfo
+  const { filename: finalSourceFilename } = finalSourceRelativeFileInfo
 
   parsedItem.sourcePath = nodePath.join(moduleRootDirectory, finalSourceRelativePath)
-  parsedItem.targetPath = patchDirectory ? nodePath.join(patchDirectory, replacedSourceFilename) : ''
-  parsedItem.targetFilename = replacedSourceFilename
+  parsedItem.targetPath = patchDirectory ? nodePath.join(patchDirectory, nested ? finalClassPath : finalSourceFilename) : ''
+  parsedItem.targetFilename = finalSourceFilename
   parsedItem.classPath = finalClassPath
 
   const parsedSourcePathFileInfo = parseFileInfo(parsedItem.sourcePath)
@@ -180,11 +182,12 @@ export async function parseItemText(
         }
       }
 
+      const extraClassPath = globSourcePath.replace(/^.*[/\\]?target[/\\]classes[/\\]/, '').replaceAll(/\\/g, '/')
       return {
         sourcePath: globSourcePath,
-        targetPath: patchDirectory ? nodePath.join(patchDirectory, parsedGlobSourcePathFileInfo.filename) : '',
+        targetPath: patchDirectory ? nodePath.join(patchDirectory, nested ? extraClassPath : parsedGlobSourcePathFileInfo.filename) : '',
         targetFilename: parsedGlobSourcePathFileInfo.filename,
-        classPath: globSourcePath.replace(/^.*[/\\]?target[/\\]classes[/\\]/, '').replaceAll(/\\/g, '/')
+        classPath: extraClassPath
       }
     })
   }
