@@ -386,13 +386,20 @@ onMounted(async () => {
   appVersion.value = await useGetAppVersion()
 
   await loadSetting()
+
+  initModel()
 })
 
 const model = ref<Model>({
-  buildPackages: [buildDefaultBuildPackage()],
-  patches: [buildDefaultPatch()]
+  buildPackages: [],
+  patches: []
 })
 const modelFormRef = ref<FormInst | null>(null)
+
+function initModel() {
+  model.value.buildPackages.push(buildDefaultBuildPackage())
+  model.value.patches.push(buildDefaultPatch())
+}
 
 function buildDefaultBuildPackage(): BuildPackageModel {
   return {

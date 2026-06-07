@@ -401,7 +401,7 @@ onMounted(async () => {
 
   await loadSetting()
 
-  model.value.patchRootDirectory = settingModel.value.defaultPatchRootDirectory || model.value.patchRootDirectory
+  initModel()
 })
 
 const model = ref<Model>({
@@ -409,6 +409,11 @@ const model = ref<Model>({
   patches: [buildDefaultPatch()]
 })
 const modelFormRef = ref<FormInst | null>(null)
+
+function initModel() {
+  model.value.patchRootDirectory = settingModel.value.defaultPatchRootDirectory || model.value.patchRootDirectory
+  model.value.patches.push(buildDefaultPatch())
+}
 
 function buildDefaultPatch(): PatchModel {
   return {
