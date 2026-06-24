@@ -296,12 +296,18 @@ type Model = {
       originPath: string
       filePath: string
       moduleName: string
-      targetFilename: string
+      filename: string
+      relativeFilePath: string
       classPath: string
+      sourcePath: string
+      targetPath: string
       extraItems: Array<{
         filePath: string
-        targetFilename: string
+        filename: string
+        relativeFilePath: string
         classPath: string
+        sourcePath: string
+        targetPath: string
       }>
       targetBuildPackages: Array<BuildPackageModel>
       targetDirectCombineBuildPackages: Array<BuildPackageModel>
@@ -496,7 +502,7 @@ async function parsePatch(patch: PatchModel) {
     patch.nested = meta.nested || false
     const relatedModuleNames = new Set<string>()
     meta.items.forEach((item: PatchItemModel) => {
-      const { moduleName, targetFilename, classPath, extraItems } = item
+      const { moduleName, relativeFilePath, extraItems } = item
       relatedModuleNames.add(moduleName)
       const { modules: moduleSettings } = formattedSetting.value
       const moduleSetting = moduleSettings[moduleName]
@@ -507,13 +513,13 @@ async function parsePatch(patch: PatchModel) {
         status: 'error',
         message: `未找到模块配置 | ${JSON.stringify({ moduleName })}`
       }, {
-        filePath: nodePath.join(patch.directory, patch.nested ? classPath : targetFilename),
+        filePath: nodePath.join(patch.directory, relativeFilePath),
         targetBuildPackages: [],
         targetDirectCombineBuildPackages: []
       })
 
       extraItems.forEach(extraItem => Object.assign(extraItem, {
-        filePath: nodePath.join(patch.directory, patch.nested ? extraItem.classPath : extraItem.targetFilename)
+        filePath: nodePath.join(patch.directory, extraItem.relativeFilePath)
       }))
     })
     patch.items = meta.items
@@ -564,18 +570,22 @@ async function transformTextMetaFile(patch: PatchModel) {
           parsedItem.status = 'error'
           parsedItem.message = `路径解析错误 | ${JSON.stringify({ itemText: parsedItem.text })}`
           return {
+            filename: '',
+            relativeFilePath: '',
+            classPath: '',
             sourcePath: '',
-            targetPath: '',
-            targetFilename: '',
-            classPath: ''
+            targetPath: ''
           }
         }
 
+        const extraClassPath = parsedItem.classPath.replace(parsedSourcePathFileInfo.baseName, parsedGlobSourcePathFileInfo.baseName)
+        const extraRelativeFilePath = nodePath.join(parsedItem.moduleName, patch.nested ? extraClassPath : parsedGlobSourcePathFileInfo.filename).replaceAll(/\\/g, '/')
         return {
+          filename: parsedGlobSourcePathFileInfo.filename,
+          relativeFilePath: extraRelativeFilePath,
+          classPath: extraClassPath,
           sourcePath: globSourcePath,
-          targetPath: patchDirectoryName ? nodePath.join(patchDirectoryName, parsedGlobSourcePathFileInfo.filename) : '',
-          targetFilename: parsedGlobSourcePathFileInfo.filename,
-          classPath: parsedItem.classPath.replace(parsedSourcePathFileInfo.baseName, parsedGlobSourcePathFileInfo.baseName)
+          targetPath: patchDirectoryName ? nodePath.join(patchDirectoryName, extraRelativeFilePath) : ''
         }
       })
     }
@@ -764,15 +774,15 @@ async function handleCombinePatch(selectedPatch?: PatchModel) {
                 case 'A':
                 case 'M': {
                   if (!nested) {
-                    await useCopyFile(filePath, nodePath.join(directory, classPath))
+                    await useCopyFile(filePath, nodePath.join(directory, moduleName, classPath))
                   }
-                  await useAddArchive(customSevenZip, nodePath.join(unzipJarPackageDestDirectory, matchedUnzippedJarPackagePath), directory, [classPath])
+                  await useAddArchive(customSevenZip, nodePath.join(unzipJarPackageDestDirectory, matchedUnzippedJarPackagePath), nodePath.join(directory, moduleName), [classPath])
 
                   for (const extraItem of extraItems) {
                     if (!nested) {
-                      await useCopyFile(extraItem.filePath, nodePath.join(directory, extraItem.classPath))
+                      await useCopyFile(extraItem.filePath, nodePath.join(directory, moduleName, extraItem.classPath))
                     }
-                    await useAddArchive(customSevenZip, nodePath.join(unzipJarPackageDestDirectory, matchedUnzippedJarPackagePath), directory, [extraItem.classPath])
+                    await useAddArchive(customSevenZip, nodePath.join(unzipJarPackageDestDirectory, matchedUnzippedJarPackagePath), nodePath.join(directory, moduleName), [extraItem.classPath])
                   }
                   break
                 }

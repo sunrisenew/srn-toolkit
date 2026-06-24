@@ -304,15 +304,17 @@ type Model = {
         action: string
         originPath: string
         moduleName: string
+        filename: string
+        relativeFilePath: string
+        classPath: string
         sourcePath: string
         targetPath: string
-        targetFilename: string
-        classPath: string
         extraItems: Array<{
+          filename: string
+          relativeFilePath: string
+          classPath: string
           sourcePath: string
           targetPath: string
-          targetFilename: string
-          classPath: string
         }>
         status: 'success' | 'info' | 'warning' | 'error'
         message: string
@@ -375,10 +377,12 @@ type PatchMeta = {
     action: string
     originPath: string
     moduleName: string
-    targetFilename: string
+    filename: string
+    relativeFilePath: string
     classPath: string
     extraItems: Array<{
-      targetFilename: string
+      filename: string
+      relativeFilePath: string
       classPath: string
     }>
   }>
@@ -687,7 +691,8 @@ function handleExtractPatch(selectedPatch?: PatchModel) {
           action: item.action,
           originPath: item.originPath,
           moduleName: item.moduleName,
-          targetFilename: item.targetFilename,
+          filename: item.filename,
+          relativeFilePath: item.relativeFilePath,
           classPath: item.classPath,
           extraItems: []
         }
@@ -705,7 +710,8 @@ function handleExtractPatch(selectedPatch?: PatchModel) {
         for (const extraItem of item.extraItems) {
           await useCopyFile(extraItem.sourcePath, extraItem.targetPath).then(() => {
             successItem.extraItems.push({
-              targetFilename: extraItem.targetFilename,
+              filename: extraItem.filename,
+              relativeFilePath: extraItem.relativeFilePath,
               classPath: extraItem.classPath
             })
           }).catch(error => {
