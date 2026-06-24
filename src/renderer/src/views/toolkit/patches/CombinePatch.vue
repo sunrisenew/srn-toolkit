@@ -6,8 +6,8 @@
       </template>
       <template #extra>
         <n-space>
-          <n-button type="info" ghost @click="handleGuide()">指引</n-button>
-          <n-button type="info" ghost @click="toggleShowSetting(true)">配置</n-button>
+          <n-button class="guide" type="info" ghost @click="handleGuide()">指引</n-button>
+          <n-button class="setting" type="info" ghost @click="toggleShowSetting(true)">配置</n-button>
         </n-space>
       </template>
     </n-page-header>
